@@ -73,6 +73,21 @@ inline int16_t setFlagsC(int16_t n){
   return (uint16_t)n;
 }
 
+int isqrt(int n) {
+  int g = 0x8000;
+  int c = 0x8000;
+  for (;;) {
+    if (g*g > n) {
+      g ^= c;
+    }
+    c >>= 1;
+    if (c == 0) {
+      return g;
+    }
+    g |= c;
+  }
+}
+
 void cpuRun(uint16_t n){
   for(uint16_t i=0; i < n; i++)
     cpuStep();
@@ -147,6 +162,21 @@ void cpuStep(){
           reg1 = (op2 & 0xf0) >> 4;
           reg2 = op2 & 0xf;
           reg[reg1] = reg[reg2];
+          break;
+        case 0x08:
+          //LDIAL R,(int+R*2) 08 RR XXXX
+          reg1 = (op2 & 0xf0) >> 4;
+          reg2 = op2 & 0xf;
+          reg[reg1] = readInt(reg[reg2] * 2 + readInt(pc));
+          setFlags(reg[reg1]);
+          pc += 2;
+          break;
+        case 0x09:
+          //STIAL (adr+R*2),R   09 RR XXXX
+          reg1 = (op2 & 0xf0) >> 4;
+          reg2 = op2 & 0xf;
+          writeInt(readInt(pc) + reg[reg1] * 2,reg[reg2]);
+          pc += 2;
           break;
         default:
           pc++;
@@ -511,11 +541,20 @@ void cpuStep(){
           reg[reg1] = n;
           break;
         case 0xAD:
-          // RAND R,R   AD 0R
           reg1 = op2 & 0xf;
-          n = random(0, reg[reg1] + 1);
-          n = setFlags(n);
-          reg[reg1] = n;
+          reg2 = op2 & 0xf0;
+          // RAND R,R   AD 0R
+          if(reg2 == 0x00){
+            n = random(0, reg[reg1] + 1);
+            n = setFlags(n);
+            reg[reg1] = n;
+          }
+          // SQRT R    AD 1R
+          else if(reg2 == 0x10){
+            n = isqrt(reg[reg1]);
+            n = setFlags(n);
+            reg[reg1] = n;
+          }
           break;
       }
       break;
@@ -693,6 +732,12 @@ void cpuStep(){
                 adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно height, width, iheight, iwidth, adr
                 loadTile(readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
                 break;
+              case 0x90:
+                // SPRSDS R*2 D4 9R
+                reg1 = op2 & 0xf;
+                adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно direction, speed, n
+                spriteSetDirectionAndSpeed(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+                break;
             }
             break;
         case 0xD5:
@@ -750,6 +795,12 @@ void cpuStep(){
           reg1 = (op2 & 0xf0) >> 4;//num
           reg2 = op2 & 0xf;//value
           reg[reg1] = getSpriteValue(reg[reg1] & 31, reg[reg2]);
+          break;
+        case 0xDE:
+          // AGBSPR R,R     DE RR
+          reg1 = (op2 & 0xf0) >> 4;//n1
+          reg2 = op2 & 0xf;//n2
+          reg[reg1] = angleBetweenSprites(reg[reg1], reg[reg2]);
           break;
       }
       break;

@@ -118,6 +118,51 @@ int16_t getSin(int16_t g){
   return (int16_t)(int8_t)pgm_read_byte_near(sinT + g);
 }
 
+#define MULTIPLY_FP_RESOLUTION_BITS  6
+
+int16_t atan2_fp(int16_t y_fp, int16_t x_fp){
+  int32_t coeff_1 = 45;
+  int32_t coeff_1b = -56; // 56.24;
+  int32_t coeff_1c = 11;  // 11.25
+  int16_t coeff_2 = 135;
+  int16_t angle = 0;
+  int32_t r;
+  int32_t r3;
+  int16_t y_abs_fp = y_fp;
+  if (y_abs_fp < 0)
+    y_abs_fp = -y_abs_fp;
+  if (y_fp == 0){
+    if (x_fp >= 0){
+      angle = 0;
+    }
+    else{
+      angle = 180;
+    }
+  }
+  else if (x_fp >= 0){
+    r = (((int32_t)(x_fp - y_abs_fp)) << MULTIPLY_FP_RESOLUTION_BITS) / ((int32_t)(x_fp + y_abs_fp));
+    r3 = r * r;
+    r3 =  r3 >> MULTIPLY_FP_RESOLUTION_BITS;
+    r3 *= r;
+    r3 =  r3 >> MULTIPLY_FP_RESOLUTION_BITS;
+    r3 *= coeff_1c;
+    angle = (int16_t) (coeff_1 + ((coeff_1b * r + r3) >> MULTIPLY_FP_RESOLUTION_BITS));
+  }
+  else{
+    r = (((int32_t)(x_fp + y_abs_fp)) << MULTIPLY_FP_RESOLUTION_BITS) / ((int32_t)(y_abs_fp - x_fp));
+    r3 = r * r;
+    r3 =  r3 >> MULTIPLY_FP_RESOLUTION_BITS;
+    r3 *= r;
+    r3 =  r3 >> MULTIPLY_FP_RESOLUTION_BITS;
+    r3 *= coeff_1c;
+    angle = coeff_2 + ((int16_t)  (((coeff_1b * r + r3) >> MULTIPLY_FP_RESOLUTION_BITS)));
+  }
+  if (y_fp < 0)
+    return (-angle);     // negate if in quad III or IV
+  else
+    return (angle);
+}
+
 void display_init(){
   for(byte i = 0; i < 32; i++){
     sprite_table[i].address = 0;
@@ -346,7 +391,7 @@ void testSpriteCollision(){
             sprite_table[n].collision = i;
             sprite_table[i].collision = n;
             if(sprite_table[n].solid != 0 && sprite_table[i].solid != 0){
-              if((sprite_table[n].speedx > 0 && sprite_table[i].speedx < 0) || (sprite_table[n].speedx < 0 && sprite_table[i].speedx > 0)){
+              if((sprite_table[n].speedx >= 0 && sprite_table[i].speedx <= 0) || (sprite_table[n].speedx <= 0 && sprite_table[i].speedx >= 0)){
                 newspeed = (abs(sprite_table[n].speedx) + abs(sprite_table[i].speedx)) / 2;
                 if(sprite_table[n].x > sprite_table[i].x){
                   sprite_table[n].speedx = newspeed;
@@ -358,7 +403,7 @@ void testSpriteCollision(){
                 }
                 sprite_table[n].x -= 2;
               }
-              if((sprite_table[n].speedy > 0 && sprite_table[i].speedy < 0) || (sprite_table[n].speedy < 0 && sprite_table[i].speedy > 0)){
+              if((sprite_table[n].speedy >= 0 && sprite_table[i].speedy <= 0) || (sprite_table[n].speedy <= 0 && sprite_table[i].speedy >= 0)){
                 newspeed = (abs(sprite_table[n].speedy) + abs(sprite_table[i].speedy)) / 2;
                 if(sprite_table[n].y > sprite_table[i].y){
                   sprite_table[n].speedy = newspeed;
@@ -463,6 +508,11 @@ void setSprPosition(int8_t n, uint16_t x, uint16_t y){
   sprite_table[n].y = y;
 }
 
+void spriteSetDirectionAndSpeed(int8_t n, uint16_t speed, int16_t dir){
+  sprite_table[n].speedx = ((speed * getCos(dir)) >> 6);
+  sprite_table[n].speedy = ((speed * getSin(dir)) >> 6);
+}
+
 void setSprWidth(int8_t n, uint8_t w){
   sprite_table[n].width = w;
 }
@@ -477,6 +527,12 @@ void setSprSpeedx(int8_t n, int8_t s){
 
 void setSprSpeedy(int8_t n, int8_t s){
   sprite_table[n].speedy = s;
+}
+
+int16_t angleBetweenSprites(int8_t n1, int8_t n2){
+  int16_t A = atan2_fp(sprite_table[n1].y - sprite_table[n2].y, sprite_table[n1].x - sprite_table[n2].x);
+  A = (A < 0) ? A + 360 : A;
+  return A;
 }
 
 int16_t getSpriteValue(int8_t n, uint8_t t){
