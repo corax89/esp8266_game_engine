@@ -1,5 +1,9 @@
+#define FIFO_MAX_SIZE 32
+
 int16_t reg[15];
-int16_t pc = 0;
+int16_t shadow_reg[15];
+uint16_t pc = 0;
+uint16_t interrupt = 0;
 byte carry = 0;
 byte zero = 0;
 byte negative = 0;
@@ -8,10 +12,78 @@ int8_t color = 1;
 int8_t bgcolor = 0;
 String s_buffer;
 
+struct Fifo_t {
+  uint16_t el[FIFO_MAX_SIZE];
+  uint8_t position_read;
+  uint8_t position_write;
+  uint8_t size;
+};
+
+struct Fifo_t interruptFifo;
+
+void fifoClear(){
+  interruptFifo.position_read = 0;
+  interruptFifo.position_write = 0;
+  interruptFifo.size = 0;
+}
+
+void pushInFifo(int16_t n){
+  if(interruptFifo.size < FIFO_MAX_SIZE){
+    interruptFifo.el[interruptFifo.position_write] = n;
+    interruptFifo.position_write++;
+    if(interruptFifo.position_write >= FIFO_MAX_SIZE)
+      interruptFifo.position_write = 0;
+    interruptFifo.size++;
+  }
+}
+
+uint16_t popOutFifo(){
+  uint16_t out = 0;
+  if(interruptFifo.size > 0){
+    interruptFifo.size--;
+    out = interruptFifo.el[interruptFifo.position_read];
+    interruptFifo.position_read++;
+    if(interruptFifo.position_read >= FIFO_MAX_SIZE)
+      interruptFifo.position_read = 0;
+  }
+  return out;
+}
+
+int16_t flagsToByte(){
+  return (carry & 0x1) + ((zero & 0x1) << 1)  + ((negative & 0x1) << 2);
+}
+  
+void byteToFlags(int16_t b){
+  carry = b & 0x1;
+  zero = (b & 0x2) >> 1;
+  negative = (b & 0x4) >> 2;
+}
+
+void setinterrupt(uint16_t adr, int16_t param){
+  if(interrupt == 0 && adr != 0){
+    shadow_reg[0] = flagsToByte();
+    for(int8_t j = 1; j <= 15; j++){
+      shadow_reg[j] = reg[j];
+    }
+    reg[0] -= 2;
+    writeInt(reg[0], param);
+    reg[0] -= 2;
+    writeInt(reg[0], pc);
+    interrupt = pc;
+    pc = adr;
+  }
+  else{
+    pushInFifo(adr);
+    pushInFifo(param);
+  }
+}
+
 void cpuInit(){
   for(byte i = 1; i < 16; i++){
     reg[i] = 0;
   }
+  interrupt = 0;
+  fifoClear();
   display_init();
   reg[0] = RAM_SIZE - 1;//stack pointer
   clearScr();
@@ -20,9 +92,12 @@ void cpuInit(){
   setCharX(0);
   setCharY(0);
   pc = 0;
+  carry = 0;
+  zero = 0;
+  negative = 0;
   tft.setTextColor(palette[color]);
 }
-/*
+
 void debug(){
   for(byte i = 0; i < 16; i++){
     Serial.print(" R");
@@ -30,20 +105,43 @@ void debug(){
     Serial.print(':');
     Serial.print(reg[i]);
   }
-  Serial.print(" OP:");
+  Serial.print(F(" OP:"));
   Serial.print(readMem(pc),HEX);
-  Serial.print(" PC:");
+  Serial.print(F(" PC:"));
   Serial.println(pc);
-  delay(10);
-}*/
+  Serial.print(F("carry: "));
+  Serial.print(carry);
+  Serial.print(F(" zero: "));
+  Serial.print(zero);
+  Serial.print(F(" negative: "));
+  Serial.print(negative);
+  Serial.print(F(" interrupt: "));
+  Serial.print(interrupt);
+  Serial.print('/');
+  Serial.println(interruptFifo.size);
+}
 
 inline void writeInt(uint16_t adr, int16_t n){
-  writeMem(adr + 1, (n & 0xff00) >> 8);
-  writeMem(adr, n & 0xff);
+  int8_t *nPtr;
+  nPtr = (int8_t*)&n;
+  writeMem(adr, *nPtr);
+  nPtr++;
+  adr++;
+  writeMem(adr, *nPtr);
+  //writeMem(adr + 1, (n & 0xff00) >> 8);
+  //writeMem(adr, n & 0xff);
 }
 
 inline int16_t readInt(uint16_t adr){
-    return (readMem(adr + 1) << 8) + readMem(adr);
+  int16_t n;
+  int8_t *nPtr;
+  nPtr = (int8_t*)&n;
+  *nPtr = readMem(adr);
+  nPtr++;
+  adr++;
+  *nPtr = readMem(adr);
+  return n;
+  //return (readMem(adr + 1) << 8) + readMem(adr);
 }
 
 inline void writeMem(uint16_t adr, int16_t n){
@@ -393,8 +491,25 @@ void cpuStep(){
           break;
         case 0x9A:
           // RET      9A 00
-          pc = readInt(reg[0]);
-          reg[0] += 2;
+          if(interrupt == 0){
+            pc = readInt(reg[0]);
+            reg[0] += 2;
+          }
+          else{
+            pc = readInt(reg[0]);
+            if(pc == interrupt){
+              reg[0] += 4;
+              for(int8_t j = 15; j >= 1; j--){
+                reg[j] = shadow_reg[j];
+              }
+              byteToFlags(shadow_reg[0]);
+              interrupt = 0;
+              if(interruptFifo.size > 0)
+                setinterrupt(popOutFifo(), popOutFifo());
+            }
+            else
+              reg[0] += 2;
+          }
           break;
       }
       break;

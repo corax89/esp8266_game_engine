@@ -137,7 +137,7 @@ void coos_info(void){
   while(1){
     COOS_DELAY(1000);        // 1000 ms
     voltaje = ESP.getVcc();
-    tft.fillRect(0, 0, 32, 80, 0x0000);
+    tft.fillRect(0, 0, 32, 98, 0x0000);
     tft.setCursor(1, 0);
     tft.println("fps");
     tft.println(fps);
@@ -205,8 +205,12 @@ void loop() {
       cpuInit();
       return;
     }
-    if(c == 'r'){
+    else if(c == 'r'){
       ESP.reset();
+      return;
+    }
+    else  if(c == 'd'){
+      debug();
       return;
     }
   }

@@ -15,6 +15,8 @@ struct sprite {
   int8_t collision;
   uint8_t solid;
   int8_t gravity;
+  uint16_t oncollision;
+  uint16_t onexitscreen;
 };
 
 struct Particle {
@@ -177,6 +179,7 @@ void display_init(){
     sprite_table[i].collision = -1;
     sprite_table[i].solid = 0;
     sprite_table[i].gravity = 0;
+    sprite_table[i].oncollision = 0;
   }
   emitter.time = 0;
   emitter.timer = 0;
@@ -359,12 +362,17 @@ void redrawParticles(){
 
 void redrawSprites(){
   for(byte i = 0; i < 32; i++){
-    if(sprite_table[i].lives > 0)
-      if(sprite_table[i].x < 128 && sprite_table[i].y < 128)
+    if(sprite_table[i].lives > 0){    
+      if(sprite_table[i].x + sprite_table[i].width < 0 || sprite_table[i].x > 127 || sprite_table[i].y + sprite_table[i].height < 0 || sprite_table[i].y > 127){
+        if(sprite_table[i].onexitscreen > 0)
+           setinterrupt(sprite_table[i].onexitscreen, i);
+      }
+      else
         drawSpr(i, sprite_table[i].x, sprite_table[i].y);
-    sprite_table[i].speedy += sprite_table[i].gravity;
-    sprite_table[i].x += sprite_table[i].speedx;
-    sprite_table[i].y += sprite_table[i].speedy;
+      sprite_table[i].speedy += sprite_table[i].gravity;
+      sprite_table[i].x += sprite_table[i].speedx;
+      sprite_table[i].y += sprite_table[i].speedy;
+    }
   }
 }
 
@@ -390,6 +398,10 @@ void testSpriteCollision(){
           sprite_table[n].y + sprite_table[n].height > sprite_table[i].y){
             sprite_table[n].collision = i;
             sprite_table[i].collision = n;
+            if(sprite_table[n].oncollision > 0)
+              setinterrupt(sprite_table[n].oncollision, n);
+            if(sprite_table[i].oncollision > 0)
+              setinterrupt(sprite_table[i].oncollision, i);
             if(sprite_table[n].solid != 0 && sprite_table[i].solid != 0){
               if((sprite_table[n].speedx >= 0 && sprite_table[i].speedx <= 0) || (sprite_table[n].speedx <= 0 && sprite_table[i].speedx >= 0)){
                 newspeed = (abs(sprite_table[n].speedx) + abs(sprite_table[i].speedx)) / 2;
@@ -584,6 +596,10 @@ void setSpriteValue(int8_t n, uint8_t t, int16_t v){
     sprite_table[n].solid = v;
   else if(t == 10)
     sprite_table[n].gravity = v;
+  else if(t == 11)
+    sprite_table[n].oncollision = (uint16_t)v;
+  else if(t == 12)
+    sprite_table[n].onexitscreen = (uint16_t)v;
 }
 
 void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
