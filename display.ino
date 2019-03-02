@@ -3,7 +3,7 @@
 #define PARTICLE_COUNT 32
 
 struct sprite {
-  int16_t address;
+  uint16_t address;
   int16_t x;
   int16_t y;
   uint8_t width;
@@ -499,11 +499,11 @@ void clearSpriteScr(){
     }
 }
 
-void clearScr(){
+void clearScr(uint8_t color){
   for(byte y = 0; y < 128; y ++){
     line_is_draw[y] = 3;
     for(byte x = 0; x < 64; x++)
-      screen[x][y] = 0;
+      screen[x][y] = color + (color << 4);
   }
 }
 
@@ -548,28 +548,30 @@ int16_t angleBetweenSprites(int8_t n1, int8_t n2){
 }
 
 int16_t getSpriteValue(int8_t n, uint8_t t){
-  if(t == 0)
-    return sprite_table[n].x;
-  else if(t == 1)
-    return sprite_table[n].y;
-  else if(t == 2)
-    return sprite_table[n].speedx;
-  else if(t == 3)
-    return sprite_table[n].speedy;
-  else if(t == 4)
-    return sprite_table[n].width;
-  else if(t == 5)
-    return sprite_table[n].height;
-  else if(t == 6)
-    return sprite_table[n].angle;
-  else if(t == 7)
-    return sprite_table[n].lives;
-  else if(t == 8)
-    return sprite_table[n].collision;
-  else if(t == 9)
-    return sprite_table[n].solid;
-  else if(t == 10)
-    return sprite_table[n].gravity;
+  switch(t){
+    case 0:
+      return sprite_table[n].x;
+    case 1:
+      return sprite_table[n].y;
+    case 2:
+      return sprite_table[n].speedx;
+    case 3:
+      return sprite_table[n].speedy;
+    case 4:
+      return sprite_table[n].width;
+    case 5:
+      return sprite_table[n].height;
+    case 6:
+      return sprite_table[n].angle;
+    case 7:
+      return sprite_table[n].lives;
+    case 8:
+      return sprite_table[n].collision;
+    case 9:
+      return sprite_table[n].solid;
+    case 10:
+      return sprite_table[n].gravity;
+  }
   return 0;
 }
 
@@ -608,19 +610,19 @@ void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y
   int16_t nx = hw + (((x - hw) * c - (y - hh) * s) >> 6);
   int16_t ny = hh + (((y - hh) * c + (x - hw) * s) >> 6);
   int16_t nnx = nx / 2;
-  x0 = x0/2;
-  if(x0 + nnx >= 0 && x0 + nnx < 64 && y0 + ny >= 0 && y0 + ny < 128){
-    if(nx & 1)
-      sprite_screen[x0 + nnx][y0 + ny] = (sprite_screen[x0 + nnx][y0 + ny] & 0xf0) + pixel;
+  int8_t nnx0 = x0 / 2;
+  if(nnx0 + nnx >= 0 && nnx0 + nnx < 64 && y0 + ny >= 0 && y0 + ny < 128){
+    if((x0 + nx) & 1)
+      sprite_screen[nnx0 + nnx][y0 + ny] = (sprite_screen[nnx0 + nnx][y0 + ny] & 0x0f) + (pixel << 4);
     else
-      sprite_screen[x0 + nnx][y0 + ny] = (sprite_screen[x0 + nnx][y0 + ny] & 0x0f) + (pixel << 4);
-    line_is_draw[y0 + ny] |= 1 + (x0 + nnx) / 32;
+      sprite_screen[nnx0 + nnx][y0 + ny] = (sprite_screen[nnx0 + nnx][y0 + ny] & 0xf0) + pixel;
+    line_is_draw[y0 + ny] |= 1 + (nnx0 + nnx) / 32;
   }
 }
 
 inline void drawSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y){
   if(x0 + x >= 0 && x0 + x < 128 && y0 + y >= 0 && y0 + y < 128){
-    if(x & 1)
+    if((x0 + x) & 1)
       sprite_screen[(x0 + x) / 2][y0 + y] = (sprite_screen[(x0 + x) / 2][y0 + y] & 0xf0) + pixel;
     else
       sprite_screen[(x0 + x) / 2][y0 + y] = (sprite_screen[(x0 + x) / 2][y0 + y] & 0x0f) + (pixel << 4);
@@ -1046,7 +1048,7 @@ void tileDrawLine(uint8_t step, uint8_t direction){
   }
 
 void charLineUp(byte n){
-  clearScr();
+  clearScr(bgcolor);
   for(uint16_t i = 0; i < 336 - n * 21; i++){
     charArray[i] = charArray[i + n * 21];
     putchar(charArray[i], (i % 21) * 6, (i / 21) * 8);

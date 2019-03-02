@@ -46,7 +46,7 @@ void fileList(String path) {
     drwLine(2, (pos - startpos + 1) * 8, 124,  (pos - startpos + 1) * 8);
     drwLine(2, (pos - startpos + 1) * 8 + 7, 124,  (pos - startpos + 1) * 8 + 7);
     redrawScreen();
-    clearScr();
+    clearScr(0);
     while(thiskey != 0){   
       getKey();
       delay(100);
@@ -56,6 +56,7 @@ void fileList(String path) {
       delay(100);
     }
     if(thiskey & 16){//ok
+      cpuInit();
       loadFromSPIFS(thisF);
       return;
     }
@@ -67,8 +68,10 @@ void fileList(String path) {
       if(pos > 0)
         pos--;
     }
-    if(thiskey & 4)//left
+    if(thiskey & 4){//left
+      cpuInit();
       return;
+    }
   }
 }
 

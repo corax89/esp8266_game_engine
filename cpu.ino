@@ -86,7 +86,7 @@ void cpuInit(){
   fifoClear();
   display_init();
   reg[0] = RAM_SIZE - 1;//stack pointer
-  clearScr();
+  clearScr(0);
   color = 1;
   bgcolor = 0;
   setCharX(0);
@@ -354,7 +354,8 @@ void cpuStep(){
       switch(op1){ 
         case 0x50:
           //HLT       5000
-          pc -= 2;
+          //pc -= 2;
+          fileList("/");
           break;
         case 0x51:
           // STIMER R,R   51RR
@@ -671,6 +672,22 @@ void cpuStep(){
             reg[reg1] = n;
           }
           break;
+        case 0xAE:
+          // ANDL R,R   AE RR
+          reg1 = (op2 & 0xf0) >> 4;
+          reg2 = op2 & 0xf;
+          n = (reg[reg1] != 0 && reg[reg2] != 0) ? 1 : 0;
+          n = setFlags(n);
+          reg[reg1] = n;
+          break;
+        case 0xAF:
+          // ORL R,R    AF RR
+          reg1 = (op2 & 0xf0) >> 4;
+          reg2 = op2 & 0xf;
+          n = (reg[reg1] != 0 || reg[reg2] != 0) ? 1 : 0;
+          n = setFlags(n);
+          reg[reg1] = n;
+          break;
       }
       break;
     case 0xB:
@@ -732,7 +749,7 @@ void cpuStep(){
       switch(op1){ 
         case 0xD0:
           //CLS   D000
-          clearScr();
+          clearScr(bgcolor);
           break;
         case 0xD1:
           switch(op2 & 0xf0){
