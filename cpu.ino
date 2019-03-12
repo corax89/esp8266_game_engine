@@ -171,7 +171,7 @@ inline int16_t setFlagsC(int16_t n){
   return (uint16_t)n;
 }
 
-int isqrt(int n) {
+int16_t isqrt(int16_t n) {
   int g = 0x8000;
   int c = 0x8000;
   for (;;) {
@@ -184,6 +184,10 @@ int isqrt(int n) {
     }
     g |= c;
   }
+}
+
+int16_t distancepp(int16_t x1, int16_t y1, int16_t x2, int16_t y2){
+  return isqrt((x2 - x1)*(x2 - x1) + (y2-y1)*(y2-y1));
 }
 
 void cpuRun(uint16_t n){
@@ -897,6 +901,9 @@ void cpuStep(){
             else if((op2 & 0xf0) == 0x20)
               //регистр указывает на участок памяти, в котором расположены последовательно color, y, x
               drawParticle(readInt(adr + 4), readInt(adr + 2), readInt(adr) & 0xf);
+            else if((op2 & 0xf0) == 0x50)
+              //регистр указывает на участок памяти, в котором расположены последовательно y2,x2,y1,x1
+              reg[1] = distancepp(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
             break;
         case 0xD8:
           // SCROLL R,R   D8RR

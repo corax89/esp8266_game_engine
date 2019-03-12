@@ -833,7 +833,7 @@ void drawTile(int16_t x0, int16_t y0){
       nx = x0 + x * tile.imgwidth;
       for(y = 0; y < tile.height; y++){
         ny = y0 + y * tile.imgheight;
-        if(nx > 0 && nx < 128 && ny > 0 && ny < 128){
+        if(nx >= 0 && nx < 128 && ny >= 0 && ny < 128){
           imgadr = readInt(tile.adr + (x + y * tile.width) * 2);
           if(imgadr > 0)
             drawImg(imgadr, nx, ny, tile.imgwidth, tile.imgheight); 
