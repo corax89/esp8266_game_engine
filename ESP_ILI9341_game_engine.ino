@@ -92,7 +92,7 @@ void coos_cpu(void){
     COOS_DELAY(1);        // 1 ms
     timeR = millis();
     cpuOPS += 1;
-    cpuRun(1000);  
+    cpuRun(1100);  
     timeCpu += millis() - timeR;
   }
 }

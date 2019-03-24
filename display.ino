@@ -842,7 +842,31 @@ void drawTile(int16_t x0, int16_t y0){
     }
   }
 
+void drawFVLine(int16_t x, int16_t y1, int16_t y2){
+  for(int16_t  i = y1; i <= y2; i++)
+    setPix(x, i, color);
+}
+
+void drawFHLine(int16_t x1, int16_t x2, int16_t y){
+  for(int16_t  i = x1; i <= x2; i++)
+    setPix(i, y, color);
+}
+
 void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
+    if(x1 == x2){
+      if(y1 > y2)
+        drawFVLine(x1, y2, y1);
+      else
+        drawFVLine(x1, y1, y2);
+      return;
+    }
+    else if(y1 == y2){
+      if(x1 > x2)
+        drawFHLine(x2, x1, y1);
+      else
+        drawFHLine(x1, x2, y1);
+      return;
+    }
     int16_t deltaX = abs(x2 - x1);
     int16_t deltaY = abs(y2 - y1);
     int16_t signX = x1 < x2 ? 1 : -1;
@@ -1065,7 +1089,7 @@ void setCharY(int8_t y){
 
 void printc(char c, byte fc, byte bc){
   if(c == '\n'){
-    fillRect(regx * 6, regy * 8, 127 - regx * 6, 8, 0);
+    fillRect(regx * 6, regy * 8, 127 - regx * 6, 8, bgcolor);
     for(byte i = regx; i <= 21; i++){
       charArray[regx + regy * 21] = ' ';
     }
@@ -1078,7 +1102,7 @@ void printc(char c, byte fc, byte bc){
   }
   else if(c == '\t'){
     for(byte i = 0; i <= regx % 5; i++){
-      fillRect(regx * 6, regy * 8, 6, 8, 0);
+      fillRect(regx * 6, regy * 8, 6, 8, bgcolor);
       charArray[regx + regy * 21] = ' ';
       regx++;
       if(regx > 21){
@@ -1092,7 +1116,7 @@ void printc(char c, byte fc, byte bc){
     }
   }
   else{
-    fillRect(regx * 6, regy * 8, 6, 8, 0);
+    fillRect(regx * 6, regy * 8, 6, 8, bgcolor);
     putchar(c, regx * 6, regy * 8);
     charArray[regx + regy * 21] = c;
     regx++;

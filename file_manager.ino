@@ -54,6 +54,15 @@ void fileList(String path) {
     while(thiskey == 0){   
       getKey();
       delay(100);
+      if(Serial.available()){
+        char c = Serial.read();
+        Serial.print(c);
+        if(c == 'm'){
+          loadFromSerial();
+          cpuInit();
+          return;
+        }
+      }
     }
     if(thiskey & 16){//ok
       cpuInit();
@@ -63,10 +72,14 @@ void fileList(String path) {
     else if(thiskey & 2){//down
       if(pos < fileCount - 1)
         pos++;
+      if(pos - startpos > 12)
+        startpos++;
     }
     else if(thiskey & 1){//up
       if(pos > 0)
         pos--;
+      if(pos - startpos < 0)
+        startpos--;
     }
     if(thiskey & 4){//left
       cpuInit();
