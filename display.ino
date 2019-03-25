@@ -362,16 +362,16 @@ void redrawParticles(){
 
 void redrawSprites(){
   for(byte i = 0; i < 32; i++){
-    if(sprite_table[i].lives > 0){    
+    if(sprite_table[i].lives > 0){   
+      sprite_table[i].speedy += sprite_table[i].gravity;
+      sprite_table[i].x += sprite_table[i].speedx;
+      sprite_table[i].y += sprite_table[i].speedy;
       if(sprite_table[i].x + sprite_table[i].width < 0 || sprite_table[i].x > 127 || sprite_table[i].y + sprite_table[i].height < 0 || sprite_table[i].y > 127){
         if(sprite_table[i].onexitscreen > 0)
            setinterrupt(sprite_table[i].onexitscreen, i);
       }
       else
         drawSpr(i, sprite_table[i].x, sprite_table[i].y);
-      sprite_table[i].speedy += sprite_table[i].gravity;
-      sprite_table[i].x += sprite_table[i].speedx;
-      sprite_table[i].y += sprite_table[i].speedy;
     }
   }
 }
@@ -501,9 +501,10 @@ void clearSpriteScr(){
 
 void clearScr(uint8_t color){
   for(byte y = 0; y < 128; y ++){
-    line_is_draw[y] = 3;
-    for(byte x = 0; x < 64; x++)
-      screen[x][y] = color + (color << 4);
+    //line_is_draw[y] = 3;
+    for(byte x = 0; x < 128; x++)
+      setPix(x, y, color);
+      //screen[x][y] = color + (color << 4);
   }
 }
 
@@ -890,12 +891,15 @@ void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
 
 inline void setPix(byte x, byte y, byte c){
   byte xi = x / 2;
+  uint8_t b;
   if(x >= 0 && x < 128 && y >= 0 && y < 128){
+    b = screen[xi][y];
     if(x & 1)
       screen[xi][y] = (screen[xi][y] & 0xf0) + c;
     else
       screen[xi][y] = (screen[xi][y] & 0x0f) + ( c << 4);
-    line_is_draw[y] |= 1 + x / 64;
+    if(b != screen[xi][y])
+      line_is_draw[y] |= 1 + x / 64;
   }
 }
 
@@ -930,7 +934,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[63][ y] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].x--;
+        sprite_table[n].x-=2;
     }
     else if(direction == 1){
       for(uint8_t x = 0; x < 64; x++){
@@ -945,7 +949,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[x][127] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].y++;
+        sprite_table[n].y--;
     }
     else if(direction == 0){
       for(uint8_t y = 0; y < 128; y++){
@@ -960,7 +964,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[0][y] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].x++;
+        sprite_table[n].x+=2;
     }
     else {
       for(uint8_t x = 0; x < 64; x++){
@@ -975,7 +979,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[x][0] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].y--;
+        sprite_table[n].y++;
     }
     if(tile.adr > 0)
       tileDrawLine(step, direction);
