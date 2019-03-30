@@ -909,7 +909,7 @@ void cpuStep(){
           // SCROLL R,R   D8RR
           reg1 = (op2 & 0xf0) >> 4;//шаг
           reg2 = op2 & 0xf;//направление
-          scrollScreen(reg[reg1], reg[reg2]);
+          scrollScreen(1, reg[reg2]);
           break;
         case 0xD9:
           // GETPIX R,R   D9RR
