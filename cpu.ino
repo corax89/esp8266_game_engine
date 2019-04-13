@@ -1,7 +1,7 @@
 #define FIFO_MAX_SIZE 32
 
-int16_t reg[15];
-int16_t shadow_reg[15];
+int16_t reg[16];
+int16_t shadow_reg[16];
 uint16_t pc = 0;
 uint16_t interrupt = 0;
 byte carry = 0;
