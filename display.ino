@@ -13,7 +13,7 @@ struct sprite {
   int16_t angle;
   int8_t lives;
   int8_t collision;
-  uint8_t solid;
+  uint8_t flags; //0 0 0 0 0 0 scrolled solid
   int8_t gravity;
   uint16_t oncollision;
   uint16_t onexitscreen;
@@ -177,7 +177,7 @@ void display_init(){
     sprite_table[i].angle = 0;
     sprite_table[i].lives = 0;
     sprite_table[i].collision = -1;
-    sprite_table[i].solid = 0;
+    sprite_table[i].flags = 2; //scrolled = 1 solid = 0
     sprite_table[i].gravity = 0;
     sprite_table[i].oncollision = 0;
   }
@@ -385,7 +385,6 @@ uint16_t getTail(int16_t x, int16_t y){
 void testSpriteCollision(){
   byte n, i;
   int16_t x0, y0, newspeed;
-  //int16_t adr;
   for(n = 0; n < 32; n++)
     sprite_table[n].collision = -1;
   for(n = 0; n < 32; n++){
@@ -402,7 +401,7 @@ void testSpriteCollision(){
               setinterrupt(sprite_table[n].oncollision, n);
             if(sprite_table[i].oncollision > 0)
               setinterrupt(sprite_table[i].oncollision, i);
-            if(sprite_table[n].solid != 0 && sprite_table[i].solid != 0){
+            if((sprite_table[n].flags & 1) != 0 && (sprite_table[n].flags & 1) != 0){
               if((sprite_table[n].speedx >= 0 && sprite_table[i].speedx <= 0) || (sprite_table[n].speedx <= 0 && sprite_table[i].speedx >= 0)){
                 newspeed = (abs(sprite_table[n].speedx) + abs(sprite_table[i].speedx)) / 2;
                 if(sprite_table[n].x > sprite_table[i].x){
@@ -431,7 +430,7 @@ void testSpriteCollision(){
           }
         }
       }
-      if(sprite_table[n].solid != 0 && tile.adr > 0){
+      if((sprite_table[n].flags & 2) != 0 && tile.adr > 0){
           x0 = ((sprite_table[n].x + sprite_table[n].width / 2 - tile.x) / (int16_t)tile.imgwidth);
           y0 = ((sprite_table[n].y + sprite_table[n].height / 2 - tile.y + tile.imgheight) / (int16_t)tile.imgheight) - 1;
           if(x0 >= -1 && x0 <= tile.width && y0 >= -1 && y0 <= tile.height){
@@ -501,10 +500,8 @@ void clearSpriteScr(){
 
 void clearScr(uint8_t color){
   for(byte y = 0; y < 128; y ++){
-    //line_is_draw[y] = 3;
     for(byte x = 0; x < 128; x++)
       setPix(x, y, color);
-      //screen[x][y] = color + (color << 4);
   }
 }
 
@@ -569,7 +566,7 @@ int16_t getSpriteValue(int8_t n, uint8_t t){
     case 8:
       return sprite_table[n].collision;
     case 9:
-      return sprite_table[n].solid;
+      return sprite_table[n].flags & 2;
     case 10:
       return sprite_table[n].gravity;
   }
@@ -577,32 +574,55 @@ int16_t getSpriteValue(int8_t n, uint8_t t){
 }
 
 void setSpriteValue(int8_t n, uint8_t t, int16_t v){
-  if(t == 0)
-    sprite_table[n].x = v;
-  else if(t == 1)
-    sprite_table[n].y = v;
-  else if(t == 2){
-    sprite_table[n].speedx = (int8_t) v;
-  }
-  else if(t == 3){
-    sprite_table[n].speedy = (int8_t) v;
-  }
-  else if(t == 4)
-    sprite_table[n].width = v;
-  else if(t == 5)
-    sprite_table[n].height = v;
-  else if(t == 6)
-    sprite_table[n].angle = (v % 360) & 0x01ff;
-  else if(t == 7)
-    sprite_table[n].lives = v;
-  else if(t == 9)
-    sprite_table[n].solid = v;
-  else if(t == 10)
-    sprite_table[n].gravity = v;
-  else if(t == 11)
-    sprite_table[n].oncollision = (uint16_t)v;
-  else if(t == 12)
-    sprite_table[n].onexitscreen = (uint16_t)v;
+ switch(t){
+    case 0:
+      sprite_table[n].x = v;
+      return;
+    case 1:
+      sprite_table[n].y = v;
+      return;
+    case 2:
+      sprite_table[n].speedx = (int8_t) v;
+      return;
+    case 3:
+      sprite_table[n].speedy = (int8_t) v;
+      return;
+    case 4:
+      sprite_table[n].width = v;
+      return;
+    case 5:
+      sprite_table[n].height = v;
+      return;
+    case 6:
+      sprite_table[n].angle = (v % 360) & 0x01ff;
+      return;
+    case 7:
+      sprite_table[n].lives = v;
+      return;
+    case 8:
+      return;
+    case 9:
+      if(v != 0)
+        sprite_table[n].flags |= 0x01;
+      else
+        sprite_table[n].flags &= ~0x01;
+      return;
+    case 10:
+      sprite_table[n].gravity = v;
+      return;
+    case 11:
+      sprite_table[n].oncollision = (uint16_t)v;
+      return;
+    case 12:
+      sprite_table[n].onexitscreen = (uint16_t)v;
+      return;
+    case 13:
+      if(v != 0)
+        sprite_table[n].flags |= 0x02;
+      else
+        sprite_table[n].flags &= ~0x02;
+      return;
+ }
 }
 
 void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
@@ -666,7 +686,7 @@ void drawSpr(int8_t n, uint16_t x, uint16_t y){
   }
 }
 
-void drawImg(int16_t a, uint16_t x, uint16_t y, int16_t w, int16_t h){
+void drawImg(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
   if(imageSize > 1){
     drawImgS(a, x, y, w, h);
     return;
@@ -688,7 +708,7 @@ void drawImg(int16_t a, uint16_t x, uint16_t y, int16_t w, int16_t h){
     }
 }
 
-void drawImgRLE(int16_t adr, uint16_t x1, uint16_t y1, int16_t w, int16_t h){
+void drawImgRLE(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     if(imageSize > 1){
       drawImgRLES(adr, x1, y1, w, h);
       return;
@@ -738,7 +758,30 @@ void drawImgRLE(int16_t adr, uint16_t x1, uint16_t y1, int16_t w, int16_t h){
     }
   }
 
-void drawImgS(int16_t a, uint16_t x, uint16_t y, int16_t w, int16_t h){
+void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
+  if(imageSize > 1){
+    drawImageBitS(adr, x1, y1, w, h);
+    return;
+  }
+  int16_t size = w * h / 8;
+  int16_t i = 0;
+  uint8_t ibit;
+  for(int16_t y = 0; y < h; y++)
+    for(int16_t x = 0; x < w; x++){
+      if(i % 8 == 0){
+        ibit = readMem(adr);
+        adr++;
+      }
+      if(ibit & 0x80)
+        setPix(x1 + x, y1 + y, color);
+      else
+        setPix(x1 + x, y1 + y, bgcolor);
+      ibit = ibit << 1;
+      i++;
+    }
+}
+
+void drawImgS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
   uint8_t p, jx, jy, color, s;
   s = imageSize;
   for(int16_t yi = 0; yi < h; yi++)
@@ -761,10 +804,9 @@ void drawImgS(int16_t a, uint16_t x, uint16_t y, int16_t w, int16_t h){
     }
 }
 
-void drawImgRLES(int16_t adr, uint16_t x1, uint16_t y1, int16_t w, int16_t h){
+void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     int16_t i = 0;
-    uint8_t jx, jy, s;
-    s = imageSize;
+    uint8_t jx, jy;
     byte repeat = readMem(adr);
     adr++;
     int8_t color1 = (readMem(adr) & 0xf0) >> 4;
@@ -772,14 +814,14 @@ void drawImgRLES(int16_t adr, uint16_t x1, uint16_t y1, int16_t w, int16_t h){
     while(i < w * h){
       if(repeat > 0x81){
         if(color1 > 0){
-          for(jx = 0; jx < s; jx++)
-            for(jy = 0; jy < s; jy++)
-              setPix(x1 + (i % w) * s + jx, y1 + i / w * s + jy, color1);
+          for(jx = 0; jx < imageSize; jx++)
+            for(jy = 0; jy < imageSize; jy++)
+              setPix(x1 + (i % w) * imageSize + jx, y1 + i / w * imageSize + jy, color1);
         }
         if(color2 > 0){
-          for(jx = 0; jx < s; jx++)
-            for(jy = 0; jy < s; jy++)
-              setPix(x1 + (i % w) * s + s + jx, y1 + i / w * s + jy, color2);
+          for(jx = 0; jx < imageSize; jx++)
+            for(jy = 0; jy < imageSize; jy++)
+              setPix(x1 + (i % w) * imageSize + imageSize + jx, y1 + i / w * imageSize + jy, color2);
         }
         i += 2;
         adr++;
@@ -795,14 +837,14 @@ void drawImgRLES(int16_t adr, uint16_t x1, uint16_t y1, int16_t w, int16_t h){
       }
       else if(repeat > 0){
         if(color1 > 0){
-          for(jx = 0; jx < s; jx++)
-                for(jy = 0; jy < s; jy++)
-                  setPix(x1 + (i % w) * s + jx, y1 + i / w * s + jy, color1);
+          for(jx = 0; jx < imageSize; jx++)
+                for(jy = 0; jy < imageSize; jy++)
+                  setPix(x1 + (i % w) * imageSize + jx, y1 + i / w * imageSize + jy, color1);
         }
         if(color2 > 0){
-          for(jx = 0; jx < s; jx++)
-                for(jy = 0; jy < s; jy++)
-                  setPix(x1 + (i % w) * s + s + jx, y1 + i / w * s + jy, color2);;
+          for(jx = 0; jx < imageSize; jx++)
+                for(jy = 0; jy < imageSize; jy++)
+                  setPix(x1 + (i % w) * imageSize + imageSize + jx, y1 + i / w * imageSize + jy, color2);
         }
         i += 2;
         repeat--;
@@ -816,6 +858,31 @@ void drawImgRLES(int16_t adr, uint16_t x1, uint16_t y1, int16_t w, int16_t h){
       }
     }
   }
+
+void drawImageBitS(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
+  int16_t size = w * h / 8;
+  int16_t i = 0;
+  uint8_t ibit, jx, jy;
+  for(int16_t y = 0; y < h; y++)
+    for(int16_t x = 0; x < w; x++){
+      if(i % 8 == 0){
+        ibit = readMem(adr);
+        adr++;
+      }
+      if(ibit & 0x80){
+        for(jx = 0; jx < imageSize; jx++)
+          for(jy = 0; jy < imageSize; jy++)
+          setPix(x1 + x * imageSize + jx, y1 + y * imageSize + jy, color);
+      } 
+      else{
+        for(jx = 0; jx < imageSize; jx++)
+          for(jy = 0; jy < imageSize; jy++)
+            setPix(x1 + x * imageSize + jx, y1 + y * imageSize + jy, bgcolor);
+      } 
+      ibit = ibit << 1;
+      i++;
+    }
+}
 
 void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8_t height){
     tile.adr = adr;
@@ -834,7 +901,7 @@ void drawTile(int16_t x0, int16_t y0){
       nx = x0 + x * tile.imgwidth;
       for(y = 0; y < tile.height; y++){
         ny = y0 + y * tile.imgheight;
-        if(nx >= 0 && nx < 128 && ny >= 0 && ny < 128){
+        if(nx >= -tile.width && nx < 128 && ny >= -tile.height && ny < 128){
           imgadr = readInt(tile.adr + (x + y * tile.width) * 2);
           if(imgadr > 0)
             drawImg(imgadr, nx, ny, tile.imgwidth, tile.imgheight); 
@@ -934,7 +1001,8 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[63][ y] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].x-=2;
+        if(sprite_table[n].flags & 2)
+          sprite_table[n].x -= 2;
     }
     else if(direction == 1){
       for(uint8_t x = 0; x < 64; x++){
@@ -949,7 +1017,8 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[x][127] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].y--;
+        if(sprite_table[n].flags & 2)
+          sprite_table[n].y--;
     }
     else if(direction == 0){
       for(uint8_t y = 0; y < 128; y++){
@@ -964,7 +1033,8 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[0][y] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].x+=2;
+        if(sprite_table[n].flags & 2)
+          sprite_table[n].x += 2;
     }
     else {
       for(uint8_t x = 0; x < 64; x++){
@@ -979,7 +1049,8 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[x][0] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        sprite_table[n].y++;
+        if(sprite_table[n].flags & 2)
+          sprite_table[n].y++;
     }
     if(tile.adr > 0)
       tileDrawLine(step, direction);
@@ -994,10 +1065,10 @@ void tileDrawLine(uint8_t step, uint8_t direction){
       y0 = tile.y;
       x = (127 - x0) / tile.imgwidth;
       nx = x0 + x * tile.imgwidth;
-      if(x < tile.width && x >= 0){
+      if(x < tile.width && x >= -tile.width){
         for(y = 0; y < tile.height; y++){
           ny = y0 + y * tile.imgheight;
-          if(ny > 0 && ny < 128){
+          if(ny > -tile.height && ny < 128){
             imgadr = readInt(tile.adr + (x + y * tile.width) * 2);
             if(imgadr > 0)
               drawImg(imgadr, nx, ny, tile.imgwidth, tile.imgheight); 
@@ -1019,10 +1090,10 @@ void tileDrawLine(uint8_t step, uint8_t direction){
       y0 = tile.y;
       y = (127 - y0) / tile.imgheight;
       ny = y0 + y * tile.imgheight;
-      if(y < tile.height  && y >= 0)
+      if(y < tile.height  && y >= -tile.height)
         for(x = 0; x < tile.width; x++){
           nx = x0 + x * tile.imgwidth;
-          if(nx > 0 && nx < 128){
+          if(nx > -tile.width && nx < 128){
             imgadr = readInt(tile.adr + (x + y * tile.width) * 2);
             if(imgadr > 0)
               drawImg(imgadr, nx, ny, tile.imgwidth, tile.imgheight); 
@@ -1037,10 +1108,10 @@ void tileDrawLine(uint8_t step, uint8_t direction){
       y0 = tile.y;
       x = (0 - x0) / tile.imgwidth;
       nx = x0 + x * tile.imgwidth;
-      if(x0 < 0 && x >= 0){
+      if(x0 < 0 && x >= -tile.width){
         for(y = 0; y < tile.height; y++){
           ny = y0 + y * tile.imgheight;
-          if(ny > 0 && ny < 128){
+          if(ny > -tile.height && ny < 128){
             imgadr = readInt(tile.adr + (x + y * tile.width) * 2);
             if(imgadr > 0)
               drawImg(imgadr, nx, ny, tile.imgwidth, tile.imgheight); 
@@ -1062,9 +1133,9 @@ void tileDrawLine(uint8_t step, uint8_t direction){
       y0 = tile.y;
       y = (0 - y0) / tile.imgheight;
       ny = y0 + y * tile.imgheight;
-      if(y < tile.height  && y >= 0)
+      if(y < tile.height  && y >= -tile.height)
         for(x = 0; x < tile.width; x++){
-          if(nx > 0 && nx < 128){
+          if(nx > -tile.width && nx < 128){
             imgadr = readInt(tile.adr + (x + y * tile.width) * 2);
             if(imgadr > 0)
               drawImg(imgadr, nx, ny, tile.imgwidth, tile.imgheight); 
