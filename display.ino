@@ -956,10 +956,10 @@ void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     }
   }
 
-inline void setPix(byte x, byte y, byte c){
-  byte xi = x / 2;
+inline void setPix(uint16_t x, uint16_t y, uint8_t c){
+  uint8_t xi = x / 2;
   uint8_t b;
-  if(x >= 0 && x < 128 && y >= 0 && y < 128){
+  if(x < 128 && y < 128){
     b = screen[xi][y];
     if(x & 1)
       screen[xi][y] = (screen[xi][y] & 0xf0) + c;
@@ -1133,8 +1133,9 @@ void tileDrawLine(uint8_t step, uint8_t direction){
       y0 = tile.y;
       y = (0 - y0) / tile.imgheight;
       ny = y0 + y * tile.imgheight;
-      if(y < tile.height  && y >= -tile.height)
+      if(y0 < 0  && y >= -tile.height)
         for(x = 0; x < tile.width; x++){
+          nx = x0 + x * tile.imgwidth;
           if(nx > -tile.width && nx < 128){
             imgadr = readInt(tile.adr + (x + y * tile.width) * 2);
             if(imgadr > 0)
