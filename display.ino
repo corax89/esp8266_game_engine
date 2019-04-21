@@ -1,5 +1,20 @@
 #include "font_a.c"
 
+#define DISPLAY_X_OFFSET 32
+#define SCREEN_WIDTH 128
+#define SCREEN_WIDTH_BYTES 64
+#define SCREEN_HEIGHT 128
+#define SCREEN_SIZE (SCREEN_HEIGHT * SCREEN_WIDTH_BYTES)
+#define ONE_DIM_SCREEN_ARRAY
+
+#ifndef ONE_DIM_SCREEN_ARRAY
+#define SCREEN_ARRAY_DEF SCREEN_WIDTH_BYTES][SCREEN_HEIGHT
+#define SCREEN_ADDR(x, y) x][y
+#else
+#define SCREEN_ARRAY_DEF SCREEN_SIZE
+#define SCREEN_ADDR(x, y) ((int(y) << 6) + int(x))
+#endif
+
 #define PARTICLE_COUNT 32
 
 struct sprite {
@@ -95,9 +110,9 @@ static const int8_t sinT[] PROGMEM = {
   0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe
 };
 
-uint8_t screen[64][128];
+uint8_t screen[SCREEN_ARRAY_DEF];
+uint8_t sprite_screen[SCREEN_ARRAY_DEF];
 uint8_t line_is_draw[128];
-uint8_t sprite_screen[64][128];
 char charArray[340];
 uint16_t pix_buffer[256];
 struct sprite sprite_table[32];
@@ -107,6 +122,9 @@ struct Tile tile;
 int8_t imageSize = 1;
 int8_t regx = 0;
 int8_t regy = 0;
+
+#pragma GCC optimize ("-O2")
+#pragma GCC push_options
 
 int16_t getCos(int16_t g){
   if(g >= 360)
@@ -234,17 +252,17 @@ void redrawScreen(){
         tft.setAddrWindow(32 + 0, y * 2 - 8, 32 + 127, y * 2 + 2 - 8);
       //в одной ячейке памяти содержится два пикселя
       for(uint8_t x = 0; x < 32; x++){
-          if((sprite_screen[x][y] & 0xf0) > 0)
-            pix_buffer[i] = palette[(sprite_screen[x][y] & 0xf0) >> 4]; 
+          if((sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) > 0)
+            pix_buffer[i] = palette[(sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4]; 
           else
-            pix_buffer[i] = palette[(screen[x][y] & 0xf0) >> 4];
+            pix_buffer[i] = palette[(screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4];
           i++;
           pix_buffer[i] = pix_buffer[i - 1];
           i++;
-          if((sprite_screen[x][y] & 0x0f) > 0)
-            pix_buffer[i] = palette[sprite_screen[x][y] & 0x0f];
+          if((sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) > 0)
+            pix_buffer[i] = palette[sprite_screen[SCREEN_ADDR(x,y)] & 0x0f];
           else
-            pix_buffer[i] = palette[screen[x][y] & 0x0f];
+            pix_buffer[i] = palette[screen[SCREEN_ADDR(x,y)] & 0x0f];
           i++;
           pix_buffer[i] = pix_buffer[i - 1];
           i++;
@@ -263,17 +281,17 @@ void redrawScreen(){
         tft.setAddrWindow(32 + 128, y * 2 - 8, 32 + 255, y * 2 + 2 - 8);
       //в одной ячейке памяти содержится два пикселя
       for(uint8_t x = 0; x < 32; x++){
-          if((sprite_screen[x + 32][y] & 0xf0) > 0)
-            pix_buffer[i] = palette[(sprite_screen[x + 32][y] & 0xf0) >> 4]; 
+          if((sprite_screen[SCREEN_ADDR(x + 32,y)] & 0xf0) > 0)
+            pix_buffer[i] = palette[(sprite_screen[SCREEN_ADDR(x + 32,y)] & 0xf0) >> 4]; 
           else
-            pix_buffer[i] = palette[(screen[x + 32][y] & 0xf0) >> 4];
+            pix_buffer[i] = palette[(screen[SCREEN_ADDR(x + 32,y)] & 0xf0) >> 4];
           i++;
           pix_buffer[i] = pix_buffer[i - 1];
           i++;
-          if((sprite_screen[x + 32][y] & 0x0f) > 0)
-            pix_buffer[i] = palette[sprite_screen[x + 32][y] & 0x0f];
+          if((sprite_screen[SCREEN_ADDR(x + 32,y)] & 0x0f) > 0)
+            pix_buffer[i] = palette[sprite_screen[SCREEN_ADDR(x + 32,y)] & 0x0f];
           else
-            pix_buffer[i] = palette[screen[x + 32][y] & 0x0f];
+            pix_buffer[i] = palette[screen[SCREEN_ADDR(x + 32,y)] & 0x0f];
           i++;
           pix_buffer[i] = pix_buffer[i - 1];
           i++;
@@ -292,17 +310,17 @@ void redrawScreen(){
         tft.setAddrWindow(32 + 0, y * 2 - 8, 32 + 255, y * 2 + 2 - 8);
       //в одной ячейке памяти содержится два пикселя
       for(uint8_t x = 0; x < 64; x++){
-          if((sprite_screen[x][y] & 0xf0) > 0)
-            pix_buffer[i] = palette[(sprite_screen[x][y] & 0xf0) >> 4]; 
+          if((sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) > 0)
+            pix_buffer[i] = palette[(sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4]; 
           else
-            pix_buffer[i] = palette[(screen[x][y] & 0xf0) >> 4];
+            pix_buffer[i] = palette[(screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4];
           i++;
           pix_buffer[i] = pix_buffer[i - 1];
           i++;
-          if((sprite_screen[x][y] & 0x0f) > 0)
-            pix_buffer[i] = palette[sprite_screen[x][y] & 0x0f];
+          if((sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) > 0)
+            pix_buffer[i] = palette[sprite_screen[SCREEN_ADDR(x,y)] & 0x0f];
           else
-            pix_buffer[i] = palette[screen[x][y] & 0x0f];
+            pix_buffer[i] = palette[screen[SCREEN_ADDR(x,y)] & 0x0f];
           i++;
           pix_buffer[i] = pix_buffer[i - 1];
           i++;
@@ -341,9 +359,9 @@ void redrawParticles(){
         x = (particles[n].x & 127) / 2;
         y = particles[n].y & 127;
         if(particles[n].x & 1)
-          sprite_screen[x][y] = (sprite_screen[x][y] & 0xf0) + (particles[n].color & 0x0f);
+          sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
         else
-          sprite_screen[x][y] = (sprite_screen[x][y] & 0x0f) + ((particles[n].color & 0x0f) << 4);
+          sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) + ((particles[n].color & 0x0f) << 4);
         line_is_draw[y] |= 1 + x / 32;
         particles[n].time -= 50;
         if(random(0,2)){
@@ -492,9 +510,9 @@ void testSpriteCollision(){
 void clearSpriteScr(){
   for(byte y = 0; y < 128; y ++)
     for(byte x = 0; x < 64; x++){
-      if(sprite_screen[x][y] > 0)
+      if(sprite_screen[SCREEN_ADDR(x,y)] > 0)
         line_is_draw[y] |= 1 + x / 32;
-      sprite_screen[x][y] = 0;
+      sprite_screen[SCREEN_ADDR(x,y)] = 0;
     }
 }
 
@@ -634,9 +652,9 @@ void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y
   int8_t nnx0 = x0 / 2;
   if(nnx0 + nnx >= 0 && nnx0 + nnx < 64 && y0 + ny >= 0 && y0 + ny < 128){
     if((x0 + nx) & 1)
-      sprite_screen[nnx0 + nnx][y0 + ny] = (sprite_screen[nnx0 + nnx][y0 + ny] & 0x0f) + (pixel << 4);
+      sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] = (sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] & 0x0f) + (pixel << 4);
     else
-      sprite_screen[nnx0 + nnx][y0 + ny] = (sprite_screen[nnx0 + nnx][y0 + ny] & 0xf0) + pixel;
+      sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] = (sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] & 0xf0) + pixel;
     line_is_draw[y0 + ny] |= 1 + (nnx0 + nnx) / 32;
   }
 }
@@ -644,9 +662,9 @@ void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y
 inline void drawSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y){
   if(x0 + x >= 0 && x0 + x < 128 && y0 + y >= 0 && y0 + y < 128){
     if((x0 + x) & 1)
-      sprite_screen[(x0 + x) / 2][y0 + y] = (sprite_screen[(x0 + x) / 2][y0 + y] & 0xf0) + pixel;
+      sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] = (sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] & 0xf0) + pixel;
     else
-      sprite_screen[(x0 + x) / 2][y0 + y] = (sprite_screen[(x0 + x) / 2][y0 + y] & 0x0f) + (pixel << 4);
+      sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] = (sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] & 0x0f) + (pixel << 4);
     line_is_draw[y0 + y] |= 1 + (x0 + x) / 64;
   }
 }
@@ -960,12 +978,12 @@ inline void setPix(uint16_t x, uint16_t y, uint8_t c){
   uint8_t xi = x / 2;
   uint8_t b;
   if(x < 128 && y < 128){
-    b = screen[xi][y];
+    b = screen[SCREEN_ADDR(xi, y)];
     if(x & 1)
-      screen[xi][y] = (screen[xi][y] & 0xf0) + c;
+      screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0xf0) + c;
     else
-      screen[xi][y] = (screen[xi][y] & 0x0f) + ( c << 4);
-    if(b != screen[xi][y])
+      screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0x0f) + ( c << 4);
+    if(b != screen[SCREEN_ADDR(xi, y)])
       line_is_draw[y] |= 1 + x / 64;
   }
 }
@@ -975,9 +993,9 @@ byte getPix(byte x, byte y){
   byte xi = x / 2;
   if(x >= 0 && x < 128 && y >= 0 && y < 128){
     if(x % 2 == 0)
-      b = (screen[xi][y] & 0xf0) >> 4;
+      b = (screen[SCREEN_ADDR(xi, y)] & 0xf0) >> 4;
     else
-      b = (screen[xi][y] & 0x0f);
+      b = (screen[SCREEN_ADDR(xi, y)] & 0x0f);
   }
   return b;
 }
@@ -990,15 +1008,15 @@ void scrollScreen(uint8_t step, uint8_t direction){
     uint8_t bufPixel;
     if(direction == 2){
       for(uint8_t y = 0; y < 128; y++){
-        bufPixel = screen[0][ y];
+        bufPixel = screen[SCREEN_ADDR(0, y)];
         for(uint8_t x = 1; x < 64; x++){
-          if(screen[x - 1][y] != screen[x][y])
+          if(screen[SCREEN_ADDR(x - 1, y)] != screen[SCREEN_ADDR(x,y)])
             line_is_draw[y] |= 1 + x / 32;
-          screen[x - 1][ y] = screen[x][y];
+          screen[SCREEN_ADDR(x - 1,  y)] = screen[SCREEN_ADDR(x,y)];
         }
-        if(screen[63][y] != bufPixel)
+        if(screen[SCREEN_ADDR(63, y)] != bufPixel)
             line_is_draw[y] |= 1;
-        screen[63][ y] = bufPixel;
+        screen[SCREEN_ADDR(63, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(sprite_table[n].flags & 2)
@@ -1006,15 +1024,15 @@ void scrollScreen(uint8_t step, uint8_t direction){
     }
     else if(direction == 1){
       for(uint8_t x = 0; x < 64; x++){
-        bufPixel = screen[x][0];
+        bufPixel = screen[SCREEN_ADDR(x, 0)];
         for(uint8_t y = 1; y < 128; y++){
-          if(screen[x][y-1] != screen[x][y])
+          if(screen[SCREEN_ADDR(x, y-1)] != screen[SCREEN_ADDR(x,y)])
             line_is_draw[y] |= 1 + x / 32;
-          screen[x][y - 1] = screen[x][y];
+          screen[SCREEN_ADDR(x, y - 1)] = screen[SCREEN_ADDR(x,y)];
         }
-        if(screen[x][127] != bufPixel)
+        if(screen[SCREEN_ADDR(x, 127)] != bufPixel)
             line_is_draw[127] |= 2;
-        screen[x][127] = bufPixel;
+        screen[SCREEN_ADDR(x, 127)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(sprite_table[n].flags & 2)
@@ -1022,15 +1040,15 @@ void scrollScreen(uint8_t step, uint8_t direction){
     }
     else if(direction == 0){
       for(uint8_t y = 0; y < 128; y++){
-        bufPixel = screen[63][y];
+        bufPixel = screen[SCREEN_ADDR(63, y)];
         for(uint8_t x = 63; x > 0; x--){
-          if(screen[x][y] != screen[x - 1][y])
+          if(screen[SCREEN_ADDR(x,y)] != screen[SCREEN_ADDR(x - 1, y)])
             line_is_draw[y] |= 1 + x / 32;
-          screen[x][y] = screen[x - 1][y];
+          screen[SCREEN_ADDR(x,y)] = screen[SCREEN_ADDR(x - 1, y)];
         }
-        if(screen[0][y] != bufPixel)
+        if(screen[SCREEN_ADDR(0, y)] != bufPixel)
             line_is_draw[y] |= 1;
-        screen[0][y] = bufPixel;
+        screen[SCREEN_ADDR(0, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(sprite_table[n].flags & 2)
@@ -1038,15 +1056,15 @@ void scrollScreen(uint8_t step, uint8_t direction){
     }
     else {
       for(uint8_t x = 0; x < 64; x++){
-        bufPixel = screen[x][127];
+        bufPixel = screen[SCREEN_ADDR(x, 127)];
         for(uint8_t y = 127; y > 0; y--){
-          if(screen[x][y] != screen[x][y - 1])
+          if(screen[SCREEN_ADDR(x,y)] != screen[SCREEN_ADDR(x, y - 1)])
             line_is_draw[y] |= 1 + x / 32;
-          screen[x][y] = screen[x][y - 1];
+          screen[SCREEN_ADDR(x,y)] = screen[SCREEN_ADDR(x, y - 1)];
         }
-        if(screen[x][0] != bufPixel)
+        if(screen[SCREEN_ADDR(x, 0)] != bufPixel)
             line_is_draw[0] |= 1 + x / 32;
-        screen[x][0] = bufPixel;
+        screen[SCREEN_ADDR(x, 0)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(sprite_table[n].flags & 2)
@@ -1234,4 +1252,6 @@ void putchar(char c, uint8_t x, uint8_t y) {
       }
   }
 }
+
+#pragma GCC pop_options
 
