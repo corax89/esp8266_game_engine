@@ -5,11 +5,11 @@
 #define SCREEN_WIDTH_BYTES 64
 #define SCREEN_HEIGHT 128
 #define SCREEN_SIZE (SCREEN_HEIGHT * SCREEN_WIDTH_BYTES)
-#define ONE_DIM_SCREEN_ARRAY
+// #define ONE_DIM_SCREEN_ARRAY
 
 #ifndef ONE_DIM_SCREEN_ARRAY
-#define SCREEN_ARRAY_DEF SCREEN_WIDTH_BYTES][SCREEN_HEIGHT
-#define SCREEN_ADDR(x, y) x][y
+#define SCREEN_ARRAY_DEF SCREEN_HEIGHT][SCREEN_WIDTH_BYTES
+#define SCREEN_ADDR(x, y) y][x
 #else
 #define SCREEN_ARRAY_DEF SCREEN_SIZE
 #define SCREEN_ADDR(x, y) ((int(y) << 6) + int(x))
@@ -110,11 +110,11 @@ static const int8_t sinT[] PROGMEM = {
   0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe
 };
 
-uint8_t screen[SCREEN_ARRAY_DEF];
-uint8_t sprite_screen[SCREEN_ARRAY_DEF];
-uint8_t line_is_draw[128];
+uint8_t screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
+uint8_t sprite_screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
+uint8_t line_is_draw[128] __attribute__ ((aligned));
 char charArray[340];
-uint16_t pix_buffer[256];
+uint16_t pix_buffer[256] __attribute__ ((aligned));
 struct sprite sprite_table[32];
 struct Particle particles[PARTICLE_COUNT];
 struct Emitter emitter;
@@ -509,11 +509,11 @@ void testSpriteCollision(){
 
 void clearSpriteScr(){
   for(byte y = 0; y < 128; y ++)
-    for(byte x = 0; x < 64; x++){
-      if(sprite_screen[SCREEN_ADDR(x,y)] > 0)
+    for(byte x = 0; x < 64; x += 4){
+      if(*((uint32_t*)&sprite_screen[SCREEN_ADDR(x,y)]) > 0)
         line_is_draw[y] |= 1 + x / 32;
-      sprite_screen[SCREEN_ADDR(x,y)] = 0;
     }
+  memset(sprite_screen, 0, SCREEN_SIZE);
 }
 
 void clearScr(uint8_t color){
@@ -985,6 +985,15 @@ inline void setPix(uint16_t x, uint16_t y, uint8_t c){
       screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0x0f) + ( c << 4);
     if(b != screen[SCREEN_ADDR(xi, y)])
       line_is_draw[y] |= 1 + x / 64;
+  }
+}
+
+inline void setPix2(uint16_t xi, uint16_t y, uint8_t c){
+  if(xi < 64 && y < 128){
+    if (screen[SCREEN_ADDR(xi, y)] != c) {
+      screen[SCREEN_ADDR(xi, y)] = c;
+      line_is_draw[y] |= 1 + xi /32;
+    }
   }
 }
 
