@@ -245,11 +245,11 @@ void redrawScreen(){
     i = 0;
     if(line_is_draw[y] == 1){
       if(y < 8)
-        tft.setAddrWindow(32 + 0, y, 32 + 127, y  + 1);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y, DISPLAY_X_OFFSET + 127, y  + 1);
       else if(y > 120)
-        tft.setAddrWindow(32 + 0, 232 - 120 + y, 32 + 127, 232 - 120 + y  + 1);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, 232 - 120 + y, DISPLAY_X_OFFSET + 127, 232 - 120 + y  + 1);
       else
-        tft.setAddrWindow(32 + 0, y * 2 - 8, 32 + 127, y * 2 + 2 - 8);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y * 2 - 8, DISPLAY_X_OFFSET + 127, y * 2 + 2 - 8);
       //в одной ячейке памяти содержится два пикселя
       for(uint8_t x = 0; x < 32; x++){
           if((sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) > 0)
@@ -274,11 +274,11 @@ void redrawScreen(){
     } 
     else if(line_is_draw[y] == 2){
       if(y < 8)
-        tft.setAddrWindow(32 + 128, y, 32 + 255, y  + 1);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 128, y, DISPLAY_X_OFFSET + 255, y  + 1);
       else if(y > 120)
-        tft.setAddrWindow(32 + 128, 232 - 120 + y, 32 + 255, 232 - 120 + y  + 1);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 128, 232 - 120 + y, DISPLAY_X_OFFSET + 255, 232 - 120 + y  + 1);
       else
-        tft.setAddrWindow(32 + 128, y * 2 - 8, 32 + 255, y * 2 + 2 - 8);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 128, y * 2 - 8, DISPLAY_X_OFFSET + 255, y * 2 + 2 - 8);
       //в одной ячейке памяти содержится два пикселя
       for(uint8_t x = 0; x < 32; x++){
           if((sprite_screen[SCREEN_ADDR(x + 32,y)] & 0xf0) > 0)
@@ -303,11 +303,11 @@ void redrawScreen(){
     } 
     else if(line_is_draw[y] == 3){
       if(y < 8)
-        tft.setAddrWindow(32 + 0, y, 32 + 255, y  + 1);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y, DISPLAY_X_OFFSET + 255, y  + 1);
       else if(y > 120)
-        tft.setAddrWindow(32 + 0, 232 - 120 + y, 32 + 255, 232 - 120 + y  + 1);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, 232 - 120 + y, DISPLAY_X_OFFSET + 255, 232 - 120 + y  + 1);
       else
-        tft.setAddrWindow(32 + 0, y * 2 - 8, 32 + 255, y * 2 + 2 - 8);
+        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y * 2 - 8, DISPLAY_X_OFFSET + 255, y * 2 + 2 - 8);
       //в одной ячейке памяти содержится два пикселя
       for(uint8_t x = 0; x < 64; x++){
           if((sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) > 0)
