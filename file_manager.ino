@@ -9,11 +9,14 @@ void fileList(String path) {
   int16_t skip = 0;
   while (dir.next()) {
     File entry = dir.openFile("r");
-    strcpy(s, entry.name());
-    Serial.println(s);
+    //strcpy(s, entry.name());
+    //Serial.println(s);
     entry.close();
     fileCount++;
   }
+  Serial.print(F("find "));
+  Serial.print(fileCount);
+  Serial.println(F(" files"));
   while(1){
     skip = startpos;
     lst = 1;
@@ -46,11 +49,9 @@ void fileList(String path) {
     drwLine(2, (pos - startpos + 1) * 8, 124,  (pos - startpos + 1) * 8);
     drwLine(2, (pos - startpos + 1) * 8 + 7, 124,  (pos - startpos + 1) * 8 + 7);
     redrawScreen();
-    clearScr(0);
-    while(thiskey != 0){   
-      getKey();
-      delay(100);
-    }
+    clearScr(0);  
+    getKey();
+    delay(200);
     while(thiskey == 0){   
       getKey();
       delay(100);

@@ -257,8 +257,12 @@ void setScreenResolution(uint16_t nw, uint16_t nh){
     rscreenHeight = 95;
   displayXOffset = (SCREEN_REAL_WIDTH - rscreenWidth) / 2;
   for(uint8_t i = 0; i < 128; i++)
-      line_is_draw[i] = 0;
+      line_is_draw[i] = 3;
   tft.fillScreen(0x0000);
+}
+
+uint16_t getDisplayXOffset(){
+  return displayXOffset;
 }
 
 void redrawScreen(){
@@ -270,15 +274,15 @@ void redrawScreen(){
       y2 = ((i * y_ratio) >> 16);
       if(line_is_draw[y2]){
         if(line_is_draw[y2] == 2){
-          startx = displayXOffset + rscreenWidth / 2;
-          startj = rscreenWidth / 2;
+          startx = displayXOffset + rscreenWidth / 2 - 2;
+          startj = rscreenWidth / 2 - 2;
         }
         else{
           startx = displayXOffset;
           startj = 0;
         }
         if(line_is_draw[y2] == 1)
-          endx = displayXOffset + rscreenWidth / 2;
+          endx = displayXOffset + rscreenWidth / 2 + 2;
         else
           endx = displayXOffset + rscreenWidth;
         tft.setAddrWindow(startx, i, endx, i  + 1);

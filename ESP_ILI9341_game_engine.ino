@@ -187,18 +187,20 @@ void coos_info(void){
   while(1){
     COOS_DELAY(1000);        // 1000 ms
     voltaje = ESP.getVcc();
-    tft.fillRect(0, 0, 32, 98, 0x0000);
-    tft.setCursor(1, 0);
-    tft.println("fps");
-    tft.println(fps);
-    tft.println("cpu");
-    tft.println(timeCpu, DEC);
-    tft.println("gpu");
-    tft.println(timeGpu, DEC);
-    tft.println("spr");
-    tft.println(timeSpr, DEC);
-    tft.println("kIPS");
-    tft.println(cpuOPS, DEC);
+    if(getDisplayXOffset() > 30){
+      tft.fillRect(0, 0, 30, 92, 0x0000);
+      tft.setCursor(1, 0);
+      tft.println("fps");
+      tft.println(fps);
+      tft.println("cpu");
+      tft.println(timeCpu, DEC);
+      tft.println("gpu");
+      tft.println(timeGpu, DEC);
+      tft.println("spr");
+      tft.println(timeSpr, DEC);
+      tft.println("kIPS");
+      tft.println(cpuOPS, DEC);
+    }
     timeCpu = 0;
     timeGpu = 0;
     timeSpr = 0;
