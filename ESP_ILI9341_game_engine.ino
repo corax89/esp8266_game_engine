@@ -22,6 +22,7 @@ extern "C" {
 int voltaje=0;
 byte i2c_adress;
 byte thiskey;
+char c;
 Ticker timer;
 uint16_t cadr_count;
 unsigned long timeF,timeR;
@@ -85,6 +86,55 @@ void loadFromSerial(){
   Serial.print(F("free heap "));
   Serial.println(system_get_free_heap_size());
   cpuInit();
+}
+
+void changeSettings(){
+  if(Serial.available()){
+    c = Serial.read();
+    Serial.print(c);
+    if(c == 'm'){
+      loadFromSerial();
+      cpuInit();
+      return;
+    }
+    else if(c == 'r'){
+      ESP.reset();
+      return;
+    }
+    else if(c == 'd'){
+      debug();
+      return;
+    }
+    else if(c == 'v'){
+      Serial.println();
+      Serial.println(F("input new resolution"));
+      int w = 0;
+      int h = 0;
+      while(Serial.available() == 0){}
+      c = Serial.read();
+      if(c <= 47 || c > 57){
+        while(Serial.available() == 0){}
+        c = Serial.read();
+      }
+      while(c > 47 && c <= 57){
+        w = w * 10 + (c - 48);
+        while(Serial.available() == 0){}
+        c = Serial.read();
+      }
+      Serial.print(w);
+      Serial.print(' ');
+      while(Serial.available() == 0){}
+      c = Serial.read();
+      while(c > 47 && c <= 57){
+        h = h * 10 + (c - 48);
+        while(Serial.available() == 0){}
+        c = Serial.read();
+      }
+      Serial.println(h);
+      setScreenResolution(w, h);
+      return;
+    }
+  }
 }
 
 void coos_cpu(void){   
@@ -182,10 +232,15 @@ void setup() {
   else{
     Serial.println(F("SPIFFS Initialization...failed"));
   }
+  Serial.print(F("FreeHeap:"));
+  Serial.println(ESP.getFreeHeap());
+  Serial.println(F("print \"vW H\" for change viewport, \"d name\" for delite file,"));
+  Serial.println(F("\"s name\" for save file and \"m\" for load to memory"));
   voltaje = ESP.getVcc();
   randomSeed(ESP.getVcc());
   clearScr(0);
   setColor(1);
+  setScreenResolution(239, 239);
   randomSeed(analogRead(0));
   timer.attach(0.001, timer_tick);
   coos.register_task(coos_cpu); 
@@ -197,21 +252,5 @@ void setup() {
 
 void loop() {
   coos.run();  // Coos scheduler
-  if(Serial.available()){
-    char c = Serial.read();
-    Serial.print(c);
-    if(c == 'm'){
-      loadFromSerial();
-      cpuInit();
-      return;
-    }
-    else if(c == 'r'){
-      ESP.reset();
-      return;
-    }
-    else  if(c == 'd'){
-      debug();
-      return;
-    }
-  }
+  changeSettings();
 }

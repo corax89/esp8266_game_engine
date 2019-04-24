@@ -54,15 +54,7 @@ void fileList(String path) {
     while(thiskey == 0){   
       getKey();
       delay(100);
-      if(Serial.available()){
-        char c = Serial.read();
-        Serial.print(c);
-        if(c == 'm'){
-          loadFromSerial();
-          cpuInit();
-          return;
-        }
-      }
+      changeSettings();
     }
     if(thiskey & 16){//ok
       cpuInit();

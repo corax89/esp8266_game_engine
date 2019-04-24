@@ -1,9 +1,10 @@
 #include "font_a.c"
 
-#define DISPLAY_X_OFFSET 32
 #define SCREEN_WIDTH 128
 #define SCREEN_WIDTH_BYTES 64
+#define SCREEN_REAL_WIDTH 320
 #define SCREEN_HEIGHT 128
+#define SCREEN_REAL_HEIGHT 240
 #define SCREEN_SIZE (SCREEN_HEIGHT * SCREEN_WIDTH_BYTES)
 // #define ONE_DIM_SCREEN_ARRAY
 
@@ -115,6 +116,9 @@ uint8_t sprite_screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
 uint8_t line_is_draw[128] __attribute__ ((aligned));
 char charArray[340];
 uint16_t pix_buffer[256] __attribute__ ((aligned));
+uint16_t rscreenWidth;
+uint16_t rscreenHeight;
+uint16_t displayXOffset = 32;
 struct sprite sprite_table[32];
 struct Particle particles[PARTICLE_COUNT];
 struct Emitter emitter;
@@ -238,99 +242,69 @@ void drawParticle(int16_t x, int16_t y, uint8_t color){
   emitter.timer = emitter.time;
 }
 
+void setScreenResolution(uint16_t nw, uint16_t nh){
+  if(nw < SCREEN_REAL_WIDTH)
+    rscreenWidth = nw;
+  else
+    rscreenWidth = SCREEN_REAL_WIDTH - 1;
+  if(nh < SCREEN_REAL_HEIGHT)
+    rscreenHeight = nh;
+  else
+    rscreenHeight = SCREEN_REAL_HEIGHT - 1;
+  if(rscreenWidth < 95)
+    rscreenWidth = 95;
+  if(rscreenHeight < 95)
+    rscreenHeight = 95;
+  displayXOffset = (SCREEN_REAL_WIDTH - rscreenWidth) / 2;
+  for(uint8_t i = 0; i < 128; i++)
+      line_is_draw[i] = 0;
+  tft.fillScreen(0x0000);
+}
+
 void redrawScreen(){
-  uint8_t i;
-  cadr_count++;
-  for(uint8_t y = 0; y < 128; y++){
-    i = 0;
-    if(line_is_draw[y] == 1){
-      if(y < 8)
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y, DISPLAY_X_OFFSET + 127, y  + 1);
-      else if(y > 120)
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, 232 - 120 + y, DISPLAY_X_OFFSET + 127, 232 - 120 + y  + 1);
-      else
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y * 2 - 8, DISPLAY_X_OFFSET + 127, y * 2 + 2 - 8);
-      //в одной ячейке памяти содержится два пикселя
-      for(uint8_t x = 0; x < 32; x++){
-          if((sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) > 0)
-            pix_buffer[i] = palette[(sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4]; 
-          else
-            pix_buffer[i] = palette[(screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4];
-          i++;
-          pix_buffer[i] = pix_buffer[i - 1];
-          i++;
-          if((sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) > 0)
-            pix_buffer[i] = palette[sprite_screen[SCREEN_ADDR(x,y)] & 0x0f];
-          else
-            pix_buffer[i] = palette[screen[SCREEN_ADDR(x,y)] & 0x0f];
-          i++;
-          pix_buffer[i] = pix_buffer[i - 1];
-          i++;
+    int x_ratio = ( int ) ((127 << 16) / rscreenWidth);
+    int y_ratio = ( int ) ((127 << 16) / rscreenHeight);
+    uint16_t x2, hx2, y2, startx, endx, startj;
+    int16_t prevy2 = -1;
+    for(int16_t i = 0; i < rscreenHeight; i++) {
+      y2 = ((i * y_ratio) >> 16);
+      if(line_is_draw[y2]){
+        if(line_is_draw[y2] == 2){
+          startx = displayXOffset + rscreenWidth / 2;
+          startj = rscreenWidth / 2;
         }
-      tft.pushColors(pix_buffer, 128);
-      if(y >= 8 && y <= 120)
-        tft.pushColors(pix_buffer, 128);
-      line_is_draw[y] = 0;
-    } 
-    else if(line_is_draw[y] == 2){
-      if(y < 8)
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 128, y, DISPLAY_X_OFFSET + 255, y  + 1);
-      else if(y > 120)
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 128, 232 - 120 + y, DISPLAY_X_OFFSET + 255, 232 - 120 + y  + 1);
-      else
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 128, y * 2 - 8, DISPLAY_X_OFFSET + 255, y * 2 + 2 - 8);
-      //в одной ячейке памяти содержится два пикселя
-      for(uint8_t x = 0; x < 32; x++){
-          if((sprite_screen[SCREEN_ADDR(x + 32,y)] & 0xf0) > 0)
-            pix_buffer[i] = palette[(sprite_screen[SCREEN_ADDR(x + 32,y)] & 0xf0) >> 4]; 
-          else
-            pix_buffer[i] = palette[(screen[SCREEN_ADDR(x + 32,y)] & 0xf0) >> 4];
-          i++;
-          pix_buffer[i] = pix_buffer[i - 1];
-          i++;
-          if((sprite_screen[SCREEN_ADDR(x + 32,y)] & 0x0f) > 0)
-            pix_buffer[i] = palette[sprite_screen[SCREEN_ADDR(x + 32,y)] & 0x0f];
-          else
-            pix_buffer[i] = palette[screen[SCREEN_ADDR(x + 32,y)] & 0x0f];
-          i++;
-          pix_buffer[i] = pix_buffer[i - 1];
-          i++;
+        else{
+          startx = displayXOffset;
+          startj = 0;
         }
-      tft.pushColors(pix_buffer, 128);
-      if(y >= 8 && y <= 120)
-        tft.pushColors(pix_buffer, 128);
-      line_is_draw[y] = 0;
-    } 
-    else if(line_is_draw[y] == 3){
-      if(y < 8)
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y, DISPLAY_X_OFFSET + 255, y  + 1);
-      else if(y > 120)
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, 232 - 120 + y, DISPLAY_X_OFFSET + 255, 232 - 120 + y  + 1);
-      else
-        tft.setAddrWindow(DISPLAY_X_OFFSET + 0, y * 2 - 8, DISPLAY_X_OFFSET + 255, y * 2 + 2 - 8);
-      //в одной ячейке памяти содержится два пикселя
-      for(uint8_t x = 0; x < 64; x++){
-          if((sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) > 0)
-            pix_buffer[i] = palette[(sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4]; 
-          else
-            pix_buffer[i] = palette[(screen[SCREEN_ADDR(x,y)] & 0xf0) >> 4];
-          i++;
-          pix_buffer[i] = pix_buffer[i - 1];
-          i++;
-          if((sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) > 0)
-            pix_buffer[i] = palette[sprite_screen[SCREEN_ADDR(x,y)] & 0x0f];
-          else
-            pix_buffer[i] = palette[screen[SCREEN_ADDR(x,y)] & 0x0f];
-          i++;
-          pix_buffer[i] = pix_buffer[i - 1];
-          i++;
+        if(line_is_draw[y2] == 1)
+          endx = displayXOffset + rscreenWidth / 2;
+        else
+          endx = displayXOffset + rscreenWidth;
+        tft.setAddrWindow(startx, i, endx, i  + 1);
+        if(prevy2 != y2)
+          for ( int j = startj; j < rscreenWidth; j++) {
+            x2 = ((j * x_ratio) >> 16);
+            hx2 = x2 / 2;
+            if(x2 & 1){
+              if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf) > 0)
+                pix_buffer[j - startj] = palette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
+              else
+                pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
+            }
+            else{
+              if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) > 0)
+                pix_buffer[j - startj] = palette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
+              else
+                pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
+            }
         }
-      tft.pushColors(pix_buffer, 256);
-      if(y >= 8 && y <= 120)
-        tft.pushColors(pix_buffer, 256);
-      line_is_draw[y] = 0;
-    } 
-  }
+        prevy2 = y2;
+        tft.pushColors(pix_buffer, endx - startx);
+      }              
+    }
+    for(uint8_t i = 0; i < 128; i++)
+      line_is_draw[i] = 0;
 }
 
 void redrawParticles(){
@@ -781,7 +755,6 @@ void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     drawImageBitS(adr, x1, y1, w, h);
     return;
   }
-  int16_t size = w * h / 8;
   int16_t i = 0;
   uint8_t ibit;
   for(int16_t y = 0; y < h; y++)
@@ -878,7 +851,6 @@ void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
   }
 
 void drawImageBitS(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
-  int16_t size = w * h / 8;
   int16_t i = 0;
   uint8_t ibit, jx, jy;
   for(int16_t y = 0; y < h; y++)

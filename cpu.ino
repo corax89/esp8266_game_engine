@@ -874,6 +874,12 @@ void cpuStep(){
                 adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно direction, speed, n
                 spriteSetDirectionAndSpeed(readInt(adr + 4), readInt(adr + 2), readInt(adr));
                 break;
+              case 0xA0:
+                // DRW1BIT R D4AR
+                reg1 = op2 & 0xf;
+                adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно h, w, y, x, адрес
+                drawImageBit(readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+                break;
             }
             break;
         case 0xD5:
