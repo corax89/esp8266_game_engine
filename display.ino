@@ -110,7 +110,23 @@ static const int8_t sinT[] PROGMEM = {
   0xdc, 0xdd, 0xde, 0xdf, 0xdf, 0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef, 
   0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe
 };
-
+static const uint8_t keyboardImage[] PROGMEM = {
+  0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x31,0x17,0x9c,0x7d,0x12,0x21,0xe,0x71,0xc7,0xc,
+  0x60,0x84,0x0,0x79,0xe7,0x84,0x49,0x14,0x12,0x10,0xa2,0x20,0x11,0x49,0x1,0x8,0x21,0x2,0x1f,0x9,0x24,0x88,0x49,0x17,
+  0x1c,0x10,0x42,0x21,0x11,0x71,0x1,0x10,0x11,0x2,0x0,0x11,0xe7,0x9f,0x49,0x54,0x18,0x10,0x42,0x21,0x11,0x41,0x1,0x8,
+  0x21,0x2,0x1f,0x21,0x20,0x88,0x51,0x54,0x14,0x10,0x42,0x21,0x11,0x41,0x1,0x8,0x21,0x2,0x0,0x21,0x20,0x84,0x28,0xa7,
+  0x92,0x10,0x41,0xc1,0xe,0x41,0xc7,0xc,0x60,0x84,0x0,0x21,0xe7,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+  0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x30,0xe7,0x1e,0x39,0x20,0x84,0x90,
+  0x41,0x5,0x1,0x28,0x43,0x9e,0x49,0xe7,0x85,0x49,0x4,0x90,0x45,0x20,0x85,0x10,0x0,0x5,0x2,0x7c,0xf4,0x52,0x49,0x4,0x9,
+  0x78,0x84,0x9c,0x41,0xe0,0x86,0x10,0x0,0x0,0x4,0x29,0x45,0xd2,0x79,0xe7,0x9f,0x48,0x44,0x90,0x4d,0x20,0x85,0x10,0x41,
+  0x0,0x8,0x28,0xe5,0x92,0x8,0x24,0x88,0x48,0x24,0x90,0x45,0x22,0x84,0x90,0x1,0x0,0x10,0x7c,0x54,0x12,0x8,0x24,0x84,0x49,
+  0xc7,0x10,0x39,0x21,0x4,0x9e,0x0,0x0,0x0,0x29,0xe3,0xde,0x9,0xe7,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
+  0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x79,0x13,0x11,0x79,0x22,0x21,0x10,0x70,
+  0x0,0x10,0x60,0x44,0x40,0x11,0xe7,0x80,0x8,0xa4,0x91,0x45,0xa3,0x62,0x8,0x10,0x0,0x10,0x64,0x42,0x80,0x30,0x20,0x80,0x10,
+  0x44,0xa,0x79,0x62,0xa4,0x4,0x70,0x0,0x10,0x9,0xf1,0x1f,0x11,0xe7,0x9b,0x20,0x44,0xa,0x45,0x22,0x22,0x8,0x40,0x0,0x10,
+  0x10,0x42,0x80,0x11,0x0,0x91,0x40,0xa4,0x84,0x45,0x22,0x21,0x10,0x0,0x4,0x0,0x2c,0x44,0x40,0x11,0x0,0x9b,0x79,0x13,0x4,
+  0x79,0x22,0x20,0x0,0x41,0x4,0x10,0x4c,0x0,0x0,0x39,0xe7,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
+};
 uint8_t screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
 uint8_t sprite_screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
 uint8_t line_is_draw[128] __attribute__ ((aligned));
@@ -126,6 +142,8 @@ struct Tile tile;
 int8_t imageSize = 1;
 int8_t regx = 0;
 int8_t regy = 0;
+int8_t isDrawKeyboard = 0;
+int8_t keyboardPos = 0;
 
 #pragma GCC optimize ("-O2")
 #pragma GCC push_options
@@ -188,7 +206,7 @@ int16_t atan2_fp(int16_t y_fp, int16_t x_fp){
 }
 
 void display_init(){
-  for(byte i = 0; i < 32; i++){
+  for(int8_t i = 0; i < 32; i++){
     sprite_table[i].address = 0;
     sprite_table[i].x = -255;
     sprite_table[i].y = -255;
@@ -202,6 +220,10 @@ void display_init(){
     sprite_table[i].flags = 2; //scrolled = 1 solid = 0
     sprite_table[i].gravity = 0;
     sprite_table[i].oncollision = 0;
+  }
+  for(int8_t i = 0; i < 16; i++){
+    palette[i] = (uint16_t)pgm_read_word_near(bpalette + i);
+    sprtpalette[i] = (uint16_t)pgm_read_word_near(bpalette + i);
   }
   emitter.time = 0;
   emitter.timer = 0;
@@ -265,11 +287,45 @@ uint16_t getDisplayXOffset(){
   return displayXOffset;
 }
 
+void viewKeyboard(int8_t pos){
+  isDrawKeyboard = true;
+  keyboardPos = pos;
+}
+
+void drawKeyboard(){
+  int16_t i = 0;
+  uint8_t bit;
+  uint16_t adr = 0;
+  uint8_t px = keyboardPos % 21;
+  uint8_t py = keyboardPos / 21;
+  for(int8_t y = 0; y < 24; y++)
+    for(uint8_t x = 0; x < 128; x++){
+      if(i % 8 == 0){
+        bit = pgm_read_byte_near(keyboardImage + adr);
+        adr++;
+      }
+      if(bit & 0x80)
+        drawSprPixel(11, 0, 104, x, y);
+      else{
+        if(y / 8 == py && x / 6 == px)
+          drawSprPixel(10, 0, 104, x, y);
+        else
+          drawSprPixel(1, 0, 104, x, y);
+      }
+      bit = bit << 1;
+      i++;
+    }
+}
+
 void redrawScreen(){
-    int x_ratio = ( int ) ((127 << 16) / rscreenWidth);
-    int y_ratio = ( int ) ((127 << 16) / rscreenHeight);
+    int x_ratio = ( int ) ((128 << 16) / rscreenWidth);
+    int y_ratio = ( int ) ((128 << 16) / rscreenHeight);
     uint16_t x2, hx2, y2, startx, endx, startj;
     int16_t prevy2 = -1;
+    if(isDrawKeyboard){
+      drawKeyboard();
+      isDrawKeyboard = 0;
+    }
     for(int16_t i = 0; i < rscreenHeight; i++) {
       y2 = ((i * y_ratio) >> 16);
       if(line_is_draw[y2]){
@@ -292,13 +348,13 @@ void redrawScreen(){
             hx2 = x2 / 2;
             if(x2 & 1){
               if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf) > 0)
-                pix_buffer[j - startj] = palette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
+                pix_buffer[j - startj] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
               else
                 pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
             }
             else{
               if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) > 0)
-                pix_buffer[j - startj] = palette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
+                pix_buffer[j - startj] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
               else
                 pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
             }
@@ -315,45 +371,55 @@ void redrawParticles(){
   int16_t i, n;
   uint8_t x, y;
   if(emitter.timer > 0){
-      emitter.timer -= 50;
-      i = emitter.count;
-      for(n = 0; n < PARTICLE_COUNT; n++){
-        if(i == 0)
-          break;
-        if(particles[n].time <= 0){
-          i--;
-          particles[n].time = emitter.timeparticle;
-          particles[n].x = emitter.x;
-          particles[n].y = emitter.y;
-          particles[n].color = emitter.color;
-          particles[n].speedx = randomD(emitter.speedx, emitter.speedx1);
-          particles[n].speedy = randomD(emitter.speedy, emitter.speedy1);
-          particles[n].gravity = emitter.gravity;
-        }
+    emitter.timer -= 50;
+    i = emitter.count;
+    for(n = 0; n < PARTICLE_COUNT; n++){
+      if(i == 0)
+        break;
+      if(particles[n].time <= 0){
+        i--;
+        particles[n].time = emitter.timeparticle;
+        particles[n].x = emitter.x;
+        particles[n].y = emitter.y;
+        particles[n].color = emitter.color;
+        particles[n].speedx = randomD(emitter.speedx, emitter.speedx1);
+        particles[n].speedy = randomD(emitter.speedy, emitter.speedy1);
+        particles[n].gravity = emitter.gravity;
       }
     }
-    for(n = 0; n < PARTICLE_COUNT; n++)
-      if(particles[n].time > 0){
-        x = (particles[n].x & 127) / 2;
-        y = particles[n].y & 127;
-        if(particles[n].x & 1)
-          sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
-        else
-          sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) + ((particles[n].color & 0x0f) << 4);
-        line_is_draw[y] |= 1 + x / 32;
-        particles[n].time -= 50;
-        if(random(0,2)){
-          particles[n].x += particles[n].speedx;
-          particles[n].speedy += particles[n].gravity;
-          particles[n].y += particles[n].speedy;
-        }
-        else{
-          particles[n].x += particles[n].speedx / 2;
-          particles[n].y += particles[n].speedy / 2;
-        }
-        if(particles[n].x < 0 || particles[n].x > 128 || particles[n].y < 0 || particles[n].y > 128)
-            particles[n].time = 0;
+  }
+  for(n = 0; n < PARTICLE_COUNT; n++)
+    if(particles[n].time > 0){
+      x = (particles[n].x & 127) / 2;
+      y = particles[n].y & 127;
+      if(particles[n].x & 1)
+        sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
+      else
+        sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) + ((particles[n].color & 0x0f) << 4);
+      line_is_draw[y] |= 1 + x / 32;
+      particles[n].time -= 50;
+      if(random(0,2)){
+        particles[n].x += particles[n].speedx;
+        particles[n].speedy += particles[n].gravity;
+        particles[n].y += particles[n].speedy;
       }
+      else{
+        particles[n].x += particles[n].speedx / 2;
+        particles[n].y += particles[n].speedy / 2;
+      }
+      if(particles[n].x < 0 || particles[n].x > 128 || particles[n].y < 0 || particles[n].y > 128)
+          particles[n].time = 0;
+    }
+}
+
+int8_t getSpriteInXY(int16_t x, int16_t y){
+  for(int8_t n = 0; n < 32; n++){
+    if(sprite_table[n].lives > 0)
+      if(sprite_table[n].x < x && sprite_table[n].x + sprite_table[n].width > x &&
+        sprite_table[n].y < y  && sprite_table[n].y + sprite_table[n].height > y)
+          return n;
+  }
+  return - 1;
 }
 
 void redrawSprites(){
@@ -370,6 +436,12 @@ void redrawSprites(){
         drawSpr(i, sprite_table[i].x, sprite_table[i].y);
     }
   }
+}
+
+uint16_t getTileInXY(int16_t x, int16_t y){
+  if(x < tile.x || y < tile.y || x > tile.x + tile.imgwidth * tile.width || tile.y > tile.imgheight * tile.height)
+    return 0;
+  return readInt(tile.adr + (((x - tile.x) / tile.imgwidth) + ((y - tile.y) / tile.imgheight) * tile.width) * 2);
 }
 
 uint16_t getTail(int16_t x, int16_t y){
@@ -622,17 +694,15 @@ void setSpriteValue(int8_t n, uint8_t t, int16_t v){
 }
 
 void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
-  //int16_t nx = ((x * c - y * s) >> 6);
-  //int16_t ny = ((y * c  + x * s) >> 6);
   int16_t nx = hw + (((x - hw) * c - (y - hh) * s) >> 6);
   int16_t ny = hh + (((y - hh) * c + (x - hw) * s) >> 6);
   int16_t nnx = nx / 2;
   int8_t nnx0 = x0 / 2;
   if(nnx0 + nnx >= 0 && nnx0 + nnx < 64 && y0 + ny >= 0 && y0 + ny < 128){
-    if((x0 + nx) & 1)
-      sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] = (sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] & 0x0f) + (pixel << 4);
-    else
+    if(nx & 1)
       sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] = (sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] & 0xf0) + pixel;
+    else
+      sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] = (sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] & 0x0f) + (pixel << 4);
     line_is_draw[y0 + ny] |= 1 + (nnx0 + nnx) / 32;
   }
 }
@@ -986,7 +1056,17 @@ byte getPix(byte x, byte y){
 }
 
 void changePalette(uint8_t n, uint16_t c){
-  palette[n] = c;
+  if(n < 16){
+    palette[n] = c;
+    for(uint8_t y = 0; y < 128; y++){
+      for(uint8_t x = 0; x < 64; x++){
+        if(((screen[SCREEN_ADDR(x, y)] & 0xf0) >> 4) == n || (screen[SCREEN_ADDR(x, y)] & 0x0f) == n)
+          line_is_draw[y] |= 1 + x / 32;
+      }
+    }
+  }
+  else if(n < 32)
+    sprtpalette[n - 16] = c;
 }
 
 void scrollScreen(uint8_t step, uint8_t direction){

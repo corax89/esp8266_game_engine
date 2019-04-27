@@ -10,7 +10,9 @@ byte negative = 0;
 byte redraw = 0;
 int8_t color = 1;
 int8_t bgcolor = 0;
+int8_t keyPosition;
 String s_buffer;
+static const char keyArray[] PROGMEM = {"qwertyuiop[]{}()=789\basdfghjkl:;\"/#$@0456\nzxcvbnm<>?.,!%+*-123 "};
 
 struct Fifo_t {
   uint16_t el[FIFO_MAX_SIZE];
@@ -753,7 +755,14 @@ void cpuStep(){
       switch(op1){ 
         case 0xD0:
           //CLS   D000
-          clearScr(bgcolor);
+          if((op2 & 0xff) == 0)
+            clearScr(bgcolor);
+          else{
+            //GSPRXY R,R
+            reg1 = (op2 & 0xf0) >> 4;
+            reg2 = op2 & 0xf;
+            reg[reg1] = getSpriteInXY(reg[reg1], reg[reg2]);
+          }
           break;
         case 0xD1:
           switch(op2 & 0xf0){
@@ -801,8 +810,22 @@ void cpuStep(){
               reg1 = (op2 & 0xf);
               if(Serial.available())
                 reg[reg1] = Serial.read();
-              else
-                pc -= 2;
+              else{
+                  viewKeyboard(keyPosition);
+                  if((thiskey & 1) && keyPosition > 21)
+                    keyPosition -= 21;
+                  if((thiskey & 2) && keyPosition < 42)
+                    keyPosition += 21;
+                  if((thiskey & 4) && keyPosition > 0)
+                    keyPosition--;
+                  if((thiskey & 8) && keyPosition < 62)
+                    keyPosition++;
+                  if(thiskey >= 16)
+                    reg[reg1] = pgm_read_byte_near(keyArray + keyPosition);
+                  else
+                    pc -= 2;
+                }
+                thiskey = 0;
               break;
             case 0x10:
               // GETJ R     D21R
@@ -946,6 +969,12 @@ void cpuStep(){
           reg1 = (op2 & 0xf0) >> 4;//n1
           reg2 = op2 & 0xf;//n2
           reg[reg1] = angleBetweenSprites(reg[reg1], reg[reg2]);
+          break;
+        case 0xDF:
+          // GTILEXY R,R      DF RR
+          reg1 = (op2 & 0xf0) >> 4;
+          reg2 = op2 & 0xf;
+          reg[reg1] = getTileInXY(reg[reg1], reg[reg2]);
           break;
       }
       break;
