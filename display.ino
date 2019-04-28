@@ -149,14 +149,16 @@ int8_t keyboardPos = 0;
 #pragma GCC push_options
 
 int16_t getCos(int16_t g){
-  if(g >= 360)
-    g = g % 360;
+  g = g % 360;
+  if(g < 0)
+    g += 360;
   return (int16_t)(int8_t)pgm_read_byte_near(cosT + g);
 }
 
 int16_t getSin(int16_t g){
-  if(g >= 360)
-    g = g % 360;
+  g = g % 360;
+  if(g < 0)
+    g += 360;
   return (int16_t)(int8_t)pgm_read_byte_near(sinT + g);
 }
 
@@ -662,7 +664,10 @@ void setSpriteValue(int8_t n, uint8_t t, int16_t v){
       sprite_table[n].height = v;
       return;
     case 6:
-      sprite_table[n].angle = (v % 360) & 0x01ff;
+      v = v % 360;
+      if(v < 0)
+        v += 360;
+      sprite_table[n].angle = v;
       return;
     case 7:
       sprite_table[n].lives = v;
