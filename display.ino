@@ -722,7 +722,7 @@ inline void drawSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t 
   }
 }
 
-void drawSpr(int8_t n, uint16_t x, uint16_t y){
+void drawSpr(int8_t n, int16_t x, int16_t y){
   uint16_t adr = sprite_table[n].address;
   uint8_t w = sprite_table[n].width;
   uint8_t h = sprite_table[n].height;
