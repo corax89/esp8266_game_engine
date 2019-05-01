@@ -131,7 +131,7 @@ uint8_t screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
 uint8_t sprite_screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
 uint8_t line_is_draw[128] __attribute__ ((aligned));
 char charArray[340];
-uint16_t pix_buffer[256] __attribute__ ((aligned));
+uint16_t pix_buffer[SCREEN_REAL_WIDTH] __attribute__ ((aligned));
 uint16_t rscreenWidth;
 uint16_t rscreenHeight;
 uint16_t displayXOffset = 32;
