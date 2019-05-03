@@ -1,5 +1,5 @@
 void fileList(String path) {
-  Dir dir = SPIFFS.openDir(path);
+  fs::Dir dir = SPIFFS.openDir(path);
   char s[32];
   char thisF[32];
   int16_t lst = 1;
@@ -8,9 +8,7 @@ void fileList(String path) {
   int16_t fileCount = 0;
   int16_t skip = 0;
   while (dir.next()) {
-    File entry = dir.openFile("r");
-    //strcpy(s, entry.name());
-    //Serial.println(s);
+    fs::File entry = dir.openFile("r");
     entry.close();
     fileCount++;
   }
@@ -23,7 +21,7 @@ void fileList(String path) {
     dir = SPIFFS.openDir(path);
     setColor(1);
     while (dir.next() && lst < 14) {
-      File entry = dir.openFile("r");
+      fs::File entry = dir.openFile("r");
       if(skip > 0){
         skip--;
       }
@@ -56,6 +54,8 @@ void fileList(String path) {
       getKey();
       delay(100);
       changeSettings();
+      if(fileIsLoad)
+        return;
     }
     if(thiskey & 16){//ok
       cpuInit();
@@ -83,7 +83,7 @@ void fileList(String path) {
 
 void loadFromSPIFS(char fileName[]){
   int i;
-  File f = SPIFFS.open(fileName, "r");
+  fs::File f = SPIFFS.open(fileName, "r");
   if(f.size() < RAM_SIZE)
     for(i = 0; i < f.size(); i++){
       mem[i] = (uint8_t)f.read();
