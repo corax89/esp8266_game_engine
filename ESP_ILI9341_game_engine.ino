@@ -83,7 +83,7 @@ void loadFromSerial(){
       }
     }
   }
-  Serial.print(F("load "));
+  Serial.println(F("load "));
   Serial.print(j);
   Serial.println(F(" byte"));
   Serial.print(F("free heap "));
