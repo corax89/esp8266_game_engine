@@ -1,10 +1,10 @@
 #include <Wire.h>
+#include "settings.h"
 
 void geti2cAdress(){
   byte error,address;
   i2c_adress=0;
-  for(address = 1; address < 127; address++ ) 
-  {
+  for(address = 1; address < 127; address++ ){
     Wire.beginTransmission(address);
     error = Wire.endTransmission();
     if (error == 0){
@@ -14,7 +14,27 @@ void geti2cAdress(){
     yield();
   }
 }
-
+#ifdef ESPBOY
+void getKey(){
+  thiskey = 0;
+  if(!mcp.digitalRead(0))
+     thiskey |= 4; 
+  if(!mcp.digitalRead(1))
+     thiskey |= 1;
+  if(!mcp.digitalRead(2))
+     thiskey |= 2;
+  if(!mcp.digitalRead(3))
+     thiskey |= 8;
+  if(!mcp.digitalRead(4))
+     thiskey |= 16;
+  if(!mcp.digitalRead(5))
+     thiskey |= 32;
+  if(!mcp.digitalRead(6))
+     thiskey |= 64;
+  if(!mcp.digitalRead(7))
+     thiskey |= 128;
+}
+#else
 void getKey(){
   byte dio_in;
   Wire.beginTransmission(i2c_adress);
@@ -40,3 +60,4 @@ void getKey(){
   if((dio_in & 1) == 0)
     thiskey |= 128; 
 }
+#endif

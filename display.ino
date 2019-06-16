@@ -1,22 +1,5 @@
 #include "font_a.c"
-
-#define SCREEN_WIDTH 128
-#define SCREEN_WIDTH_BYTES 64
-#define SCREEN_REAL_WIDTH 320
-#define SCREEN_HEIGHT 128
-#define SCREEN_REAL_HEIGHT 240
-#define SCREEN_SIZE (SCREEN_HEIGHT * SCREEN_WIDTH_BYTES)
-// #define ONE_DIM_SCREEN_ARRAY
-
-#ifndef ONE_DIM_SCREEN_ARRAY
-#define SCREEN_ARRAY_DEF SCREEN_HEIGHT][SCREEN_WIDTH_BYTES
-#define SCREEN_ADDR(x, y) y][x
-#else
-#define SCREEN_ARRAY_DEF SCREEN_SIZE
-#define SCREEN_ADDR(x, y) ((int(y) << 6) + int(x))
-#endif
-
-#define PARTICLE_COUNT 32
+#include "settings.h"
 
 struct sprite {
   uint16_t address;

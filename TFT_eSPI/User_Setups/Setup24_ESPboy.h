@@ -1,0 +1,15 @@
+#define ST7735_DRIVER
+#define TFT_WIDTH  128
+#define TFT_HEIGHT 128
+//#define ST7735_INITB
+//#define ST7735_GREENTAB
+//#define ST7735_GREENTAB2
+#define ST7735_GREENTAB3
+//#define ST7735_GREENTAB128
+//#define ST7735_REDTAB
+//#define ST7735_BLACKTAB
+#define TFT_CS   -1
+#define TFT_DC   PIN_D8
+#define TFT_RST  -1
+#define LOAD_GLCD
+#define SPI_FREQUENCY  27000000
