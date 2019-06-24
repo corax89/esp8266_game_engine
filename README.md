@@ -55,12 +55,6 @@ Games in package:
 1. Original ESP-LGE by Igor: FourInaRow, NinjaEscape, 1916, WormBlast, ESProgue, Galaxies, CityRunner, Memories, MarsAttack, Columns, Mines, Breackout, TowerDefense,
 ...
 
-<<<<<<< HEAD
-2. Classical Chip8: 2048, airplane, blinky, down8, gravedigger, invaders, puzzle, slipperyslope, spacejam, submarine, 
-...
-
-=======
->>>>>>> master
 
 
 
