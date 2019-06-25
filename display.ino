@@ -1,6 +1,10 @@
 #include "font_a.c"
 #include "settings.h"
 
+#define SPRITE_IS_SOLID(a)    (sprite_table[a].flags & 1)
+#define SPRITE_IS_SCROLLED(a) (sprite_table[a].flags & 2)
+#define SPRITE_IS_ONEBIT(a)   (sprite_table[a].flags & 4)
+
 struct sprite {
   uint16_t address;
   int16_t x;
@@ -51,6 +55,8 @@ struct Tile {
   uint8_t height;
   int16_t x;
   int16_t y;
+  uint16_t pixwidth;
+  uint16_t pixheight;
 };
 
 static const int8_t cosT[] PROGMEM = {
@@ -109,6 +115,14 @@ static const uint8_t keyboardImage[] PROGMEM = {
   0x44,0xa,0x79,0x62,0xa4,0x4,0x70,0x0,0x10,0x9,0xf1,0x1f,0x11,0xe7,0x9b,0x20,0x44,0xa,0x45,0x22,0x22,0x8,0x40,0x0,0x10,
   0x10,0x42,0x80,0x11,0x0,0x91,0x40,0xa4,0x84,0x45,0x22,0x21,0x10,0x0,0x4,0x0,0x2c,0x44,0x40,0x11,0x0,0x9b,0x79,0x13,0x4,
   0x79,0x22,0x20,0x0,0x41,0x4,0x10,0x4c,0x0,0x0,0x39,0xe7,0x80,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
+};
+
+static const uint8_t pauseImage[] PROGMEM = {
+  0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xf1,0xe4,0x27,0xbe,0x8a,0x14,0x28,0x20,0x8a,0x14,0x28,0x20,0x8a,0x14,0x28,0x20,0xf3,0xf4,
+  0x27,0x38,0x82,0x14,0x20,0xa0,0x82,0x14,0x20,0xa0,0x82,0x14,0x20,0xa0,0x82,0x14,0x20,0xa0,0x82,0x13,0xcf,0x3e,0x0,0x0,0x0,
+  0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x80,0x0,0x0,0x2,0x40,0xea,0xcc,0xc2,0x40,0xac,0x91,0x3,0xc0,0xe8,0xc8,0x82,0x40,0x88,0x84,
+  0x42,0x40,0x88,0xd9,0x82,0x40,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xee,0xa1,0x59,0xb7,0x8a,0xc1,0x92,0x22,0xca,
+  0x81,0x19,0x32,0x8a,0x81,0x10,0xa2,0x8e,0x81,0x1b,0x32,0x0,0x0,0x0,0x0
 };
 uint8_t screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
 uint8_t sprite_screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
@@ -220,6 +234,43 @@ void display_init(){
   imageSize = 1;
   regx = 0;
   regy = 0;
+}
+
+void pause(){
+  uint8_t prevKey = 128;
+  drawPause();
+  redrawScreen();
+  while(1){
+    delay(100);
+    getKey();
+    if((thiskey & 128) && prevKey != 128){
+      thiskey = 0;
+      delay(800);
+      return;
+    }
+    if(thiskey & 16)
+      ESP.reset();
+    prevKey = thiskey;
+  }
+}
+
+void drawPause(){
+  int16_t i = 0;
+  uint8_t bit;
+  uint16_t adr = 0;
+  for(int8_t y = 0; y < 30; y++)
+    for(uint8_t x = 0; x < 32; x++){
+      if(i % 8 == 0){
+        bit = pgm_read_byte_near(pauseImage + adr);
+        adr++;
+      }
+      if(bit & 0x80)
+        drawSprPixel(1, 48, 48, x, y);
+      else
+        drawSprPixel(11, 48, 48, x, y);
+      bit = bit << 1;
+      i++;
+    }
 }
 
 int8_t randomD(int8_t a, int8_t b) {
@@ -407,12 +458,19 @@ int8_t getSpriteInXY(int16_t x, int16_t y){
   return - 1;
 }
 
-void redrawSprites(){
-  for(byte i = 0; i < 32; i++){
+void moveSprites(){
+  for(uint8_t i = 0; i < 32; i++){
     if(sprite_table[i].lives > 0){   
       sprite_table[i].speedy += sprite_table[i].gravity;
       sprite_table[i].x += sprite_table[i].speedx;
       sprite_table[i].y += sprite_table[i].speedy;
+    }
+  }
+}
+
+void redrawSprites(){
+  for(uint8_t i = 0; i < 32; i++){
+    if(sprite_table[i].lives > 0){
       if(sprite_table[i].x + sprite_table[i].width < 0 || sprite_table[i].x > 127 || sprite_table[i].y + sprite_table[i].height < 0 || sprite_table[i].y > 127){
         if(sprite_table[i].onexitscreen > 0)
            setinterrupt(sprite_table[i].onexitscreen, i);
@@ -424,15 +482,78 @@ void redrawSprites(){
 }
 
 uint16_t getTileInXY(int16_t x, int16_t y){
-  if(x < tile.x || y < tile.y || x > tile.x + tile.imgwidth * tile.width || tile.y > tile.imgheight * tile.height)
+  uint32_t p;
+  if(x < tile.x || y < tile.y || x > tile.x + tile.pixwidth/*tile.imgwidth * tile.width*/ || y > tile.y + tile.pixheight/*tile.imgheight * tile.height*/)
     return 0;
-  return readInt(tile.adr + (((x - tile.x) / tile.imgwidth) + ((y - tile.y) / tile.imgheight) * tile.width) * 2);
+  p = ((x - tile.x) / (int16_t)tile.imgwidth) + ((y - tile.y) / (int16_t)tile.imgheight * (int16_t)tile.width);
+  return readInt(tile.adr + p * 2);
 }
 
 uint16_t getTail(int16_t x, int16_t y){
   if(x < 0 || x >= tile.width || y < 0 || y >= tile.height)
     return 0;
   return readInt(tile.adr + (x + y * tile.width) * 2);
+}
+
+void resolveCollision(uint8_t n, uint8_t i){
+  int16_t startx, starty, startix, startiy;
+  startx = sprite_table[n].x;
+  starty = sprite_table[n].y;
+  startix = sprite_table[i].x;
+  startiy = sprite_table[i].y;
+  sprite_table[n].x = sprite_table[n].x - sprite_table[n].speedx;
+  sprite_table[n].y = sprite_table[n].y - sprite_table[n].speedy;
+  sprite_table[i].x = sprite_table[i].x - sprite_table[i].speedx;
+  sprite_table[i].y = sprite_table[i].y - sprite_table[i].speedy;
+  if((sprite_table[n].speedy >= 0 && sprite_table[i].speedy <= 0) || (sprite_table[n].speedy <= 0 && sprite_table[i].speedy >= 0)){
+    if(sprite_table[n].y > sprite_table[i].y){
+      if(sprite_table[i].gravity){
+        sprite_table[i].y = sprite_table[n].y - sprite_table[i].height;
+      }
+    }
+    else{
+      if(sprite_table[n].gravity){
+        sprite_table[n].y = sprite_table[i].y - sprite_table[n].height;
+      }
+    }
+  }
+  if(sprite_table[n].x < sprite_table[i].x + sprite_table[i].width && 
+    sprite_table[n].x + sprite_table[n].width > sprite_table[i].x &&
+    sprite_table[n].y < sprite_table[i].y + sprite_table[i].height && 
+    sprite_table[n].y + sprite_table[n].height > sprite_table[i].y){
+      if(sprite_table[n].x > sprite_table[i].x){
+        sprite_table[n].x++;
+        sprite_table[i].x--;
+      }
+      else{
+        sprite_table[n].x--;
+        sprite_table[i].x++;
+      }
+      if(sprite_table[n].y > sprite_table[i].y){
+        sprite_table[n].y++;
+        sprite_table[i].y--;
+      }
+      else{
+        sprite_table[n].y--;
+        sprite_table[i].y++;
+      }
+    }
+  if(sprite_table[n].gravity){
+    sprite_table[n].speedx = (sprite_table[n].x - startx)/4;
+    sprite_table[n].speedy = (sprite_table[n].y - starty)/4;
+  }
+  else{
+    sprite_table[n].speedx = sprite_table[n].x - startx;
+    sprite_table[n].speedy = sprite_table[n].y - starty;
+  }
+  if(sprite_table[i].gravity){  
+    sprite_table[i].speedx = (sprite_table[i].x - startix)/4;
+    sprite_table[i].speedy = (sprite_table[i].y - startiy)/4;
+  }
+  else{
+    sprite_table[i].speedx = sprite_table[i].x - startix;
+    sprite_table[i].speedy = sprite_table[i].y - startiy;
+  }
 }
 
 void testSpriteCollision(){
@@ -454,88 +575,36 @@ void testSpriteCollision(){
               setinterrupt(sprite_table[n].oncollision, n);
             if(sprite_table[i].oncollision > 0)
               setinterrupt(sprite_table[i].oncollision, i);
-            if((sprite_table[n].flags & 1) != 0 && (sprite_table[n].flags & 1) != 0){
-              if((sprite_table[n].speedx >= 0 && sprite_table[i].speedx <= 0) || (sprite_table[n].speedx <= 0 && sprite_table[i].speedx >= 0)){
-                newspeed = (abs(sprite_table[n].speedx) + abs(sprite_table[i].speedx)) / 2;
-                if(sprite_table[n].x > sprite_table[i].x){
-                  sprite_table[n].speedx = newspeed;
-                  sprite_table[i].speedx = -newspeed;
-                }
-                else{
-                  sprite_table[n].speedx = -newspeed;
-                  sprite_table[i].speedx = newspeed;
-                }
-                sprite_table[n].x -= 2;
-              }
-              if((sprite_table[n].speedy >= 0 && sprite_table[i].speedy <= 0) || (sprite_table[n].speedy <= 0 && sprite_table[i].speedy >= 0)){
-                newspeed = (abs(sprite_table[n].speedy) + abs(sprite_table[i].speedy)) / 2;
-                if(sprite_table[n].y > sprite_table[i].y){
-                  sprite_table[n].speedy = newspeed;
-                  sprite_table[i].speedy = -newspeed;
-                }
-                else{
-                  sprite_table[n].speedy = -newspeed;
-                  sprite_table[i].speedy = newspeed;
-                }
-                sprite_table[n].y -=  2;
-              }
+            if(SPRITE_IS_SOLID(n) && SPRITE_IS_SOLID(i)){
+              resolveCollision(n,i);
             }
           }
         }
       }
-      if((sprite_table[n].flags & 2) != 0 && tile.adr > 0){
-          x0 = ((sprite_table[n].x + sprite_table[n].width / 2 - tile.x) / (int16_t)tile.imgwidth);
-          y0 = ((sprite_table[n].y + sprite_table[n].height / 2 - tile.y + tile.imgheight) / (int16_t)tile.imgheight) - 1;
-          if(x0 >= -1 && x0 <= tile.width && y0 >= -1 && y0 <= tile.height){
-            if(getTail(x0, y0) != 0){
-              if(sprite_table[n].speedx != 0){
-                if(sprite_table[n].speedx > 0){
-                  sprite_table[n].x = tile.x + x0 * tile.imgwidth - sprite_table[n].width ;
-                  sprite_table[n].speedx /= 2;
-                }
-                else{
-                  sprite_table[n].x = tile.x + (x0 + 1) * tile.imgwidth;
-                  sprite_table[n].speedx /= 2;
-                }
+      if((SPRITE_IS_SOLID(n)) && tile.adr > 0){
+          //x0 = ((sprite_table[n].x + sprite_table[n].width / 2 - tile.x) / (int16_t)tile.imgwidth);
+          //y0 = ((sprite_table[n].y + sprite_table[n].height / 2 - tile.y + tile.imgheight) / (int16_t)tile.imgheight) - 1;
+          //if(x0 >= -1 && x0 <= tile.width && y0 >= -1 && y0 <= tile.height){
+              if(getTileInXY(sprite_table[n].x, sprite_table[n].y) 
+              || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y)
+              || getTileInXY(sprite_table[n].x , sprite_table[n].y + sprite_table[n].height)
+              || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y + sprite_table[n].height)){
+                sprite_table[n].y = sprite_table[n].y - sprite_table[n].speedy;
+                if(getTileInXY(sprite_table[n].x, sprite_table[n].y) 
+                  || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y)
+                  || getTileInXY(sprite_table[n].x, sprite_table[n].y + sprite_table[n].height)
+                  || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y + sprite_table[n].height)){
+                    sprite_table[n].x = sprite_table[n].x - sprite_table[n].speedx;
+                    sprite_table[n].speedx = (sprite_table[n].x - (sprite_table[n].x - sprite_table[n].speedx)) / 2;
+                  }
+                sprite_table[n].speedy = sprite_table[n].speedy / 2 - sprite_table[n].gravity;
+                if(getTileInXY(sprite_table[n].x, sprite_table[n].y + sprite_table[n].height)
+                  || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y + sprite_table[n].height)){
+                    sprite_table[n].y--;
+                  }
               }
-              if(sprite_table[n].speedy != 0){
-                if(sprite_table[n].speedy > 0){
-                  sprite_table[n].y = tile.y + y0 * tile.imgheight - sprite_table[n].height ;
-                  sprite_table[n].speedy /= 2;
-                }
-                else{
-                  sprite_table[n].y = tile.y + (y0 + 1) * tile.imgheight;
-                  sprite_table[n].speedy /= 2;
-                }
-              }
-            }
-            else{
-              if(sprite_table[n].speedy > 0 && getTail(x0, y0 + 1) != 0){
-                if((tile.y + (y0 + 1) * tile.imgheight) - (sprite_table[n].y  + sprite_table[n].height) < sprite_table[n].speedy * 2){
-                  sprite_table[n].y = tile.y + (y0 + 1) * tile.imgheight - sprite_table[n].height;  
-                  sprite_table[n].speedy = 0;
-                }
-              }
-              else if(sprite_table[n].speedy < 0 && getTail(x0, y0 - 1) != 0){
-                if(sprite_table[n].y - (tile.y + y0 * tile.imgheight) < sprite_table[n].speedy * 2){
-                  sprite_table[n].y = tile.y + y0 * tile.imgheight;  
-                  sprite_table[n].speedy = 0;
-                }
-              }
-              if(sprite_table[n].speedx > 0  && getTail(x0 + 1, y0) != 0){
-                if((tile.x + (x0 + 1) * tile.imgwidth - sprite_table[n].width) - sprite_table[n].x < sprite_table[n].speedx * 2){
-                  sprite_table[n].x = tile.x + (x0 + 1) * tile.imgwidth - sprite_table[n].width;  
-                  sprite_table[n].speedx = 0;
-                }
-              }
-              else if(sprite_table[n].speedx < 0 && getTail(x0 - 1, y0) != 0){
-                if(sprite_table[n].x - (tile.x + x0 * tile.imgwidth) < sprite_table[n].speedx * 2){
-                  sprite_table[n].x = tile.x + x0 * tile.imgwidth; 
-                  sprite_table[n].speedx = 0;
-                }
-              } 
-            } 
-          }
+            //}
+         
         }
         
     }
@@ -619,7 +688,7 @@ int16_t getSpriteValue(int8_t n, uint8_t t){
     case 8:
       return sprite_table[n].collision;
     case 9:
-      return sprite_table[n].flags & 2;
+      return SPRITE_IS_SCROLLED(2);
     case 10:
       return sprite_table[n].gravity;
   }
@@ -718,7 +787,7 @@ void drawSpr(int8_t n, int16_t x, int16_t y){
   int16_t c, s;
   uint8_t pixel, ibit, i;
   w = w / 2;
-  if((sprite_table[n].flags & 0x4) == 0){
+  if(SPRITE_IS_ONEBIT(n) == 0){
     if(sprite_table[n].angle == 0){
       for(int8_t y1 = 0; y1 < h; y1 ++)
         if(y1 + y >= -h && y1 + y < 128 + h){
@@ -981,6 +1050,8 @@ void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8
     tile.imgheight = iheight;
     tile.width = width;
     tile.height = height;
+    tile.pixwidth = width * iwidth;
+    tile.pixheight = height * iheight;
   }
 
 void drawTile(int16_t x0, int16_t y0){
@@ -1111,7 +1182,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[SCREEN_ADDR(63, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        if(sprite_table[n].flags & 2)
+        if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].x -= 2;
     }
     else if(direction == 1){
@@ -1127,7 +1198,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[SCREEN_ADDR(x, 127)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        if(sprite_table[n].flags & 2)
+        if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].y--;
     }
     else if(direction == 0){
@@ -1143,7 +1214,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[SCREEN_ADDR(0, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        if(sprite_table[n].flags & 2)
+        if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].x += 2;
     }
     else {
@@ -1159,7 +1230,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
         screen[SCREEN_ADDR(x, 0)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
-        if(sprite_table[n].flags & 2)
+        if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].y++;
     }
     if(tile.adr > 0)

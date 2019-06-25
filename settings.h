@@ -5,6 +5,9 @@
 #ifdef ESPBOY
   #define MCP23017address 0
   #define csTFTMCP23017pin 8
+  #define LEDquantity     1
+  #define LEDPIN         D4
+  #define SOUNDPIN       D3
 #endif
 
 #define SCREEN_WIDTH 128

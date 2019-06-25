@@ -151,7 +151,7 @@ inline void writeMem(uint16_t adr, int16_t n){
     mem[adr] = n;
 }
 
-inline byte readMem(uint16_t adr){
+inline uint8_t readMem(uint16_t adr){
   return (adr < RAM_SIZE) ? mem[adr] : 0;
 }
 
@@ -191,6 +191,19 @@ int16_t isqrt(int16_t n) {
 int16_t distancepp(int16_t x1, int16_t y1, int16_t x2, int16_t y2){
   return isqrt((x2 - x1)*(x2 - x1) + (y2-y1)*(y2-y1));
 }
+
+#ifdef ESPBOY
+void setLedColor(uint16_t r5g6b5){
+  uint8_t r,g,b;
+  r = ((((r5g6b5 >> 11) & 0x1F) * 527) + 23) >> 6;
+  g = ((((r5g6b5 >> 5) & 0x3F) * 259) + 33) >> 6;
+  b = (((r5g6b5 & 0x1F) * 527) + 23) >> 6;
+  pixels.setPixelColor(0, pixels.Color(30,0,0));
+  //pixels.setPixelColor(0, pixels.Color(r, g, b));
+  pixels.show();
+  delay(100);
+}
+#endif
 
 void cpuRun(uint16_t n){
   for(uint16_t i=0; i < n; i++)
@@ -375,6 +388,42 @@ void cpuStep(){
           reg[reg1] = timers[reg[reg1] & 0x7];
           setFlags(reg[reg1]);
           break;
+        case 0x53:
+          // SETLED R   530R
+        #ifdef ESPBOY
+          reg1 = op2 & 0xf;
+          setLedColor(reg[reg1]);
+        #endif
+          break;
+        case 0x54:
+            // LOADRT   540R
+            reg1 = (op2 & 0xf0) >> 4;
+            reg2 = op2 & 0xf;
+            setRtttlAddress((uint16_t)reg[reg1]);
+            setRtttlLoop(reg[reg2]);
+            break;
+          case 0x55:
+            switch(op2){
+              // PLAYRT   5500
+              case 0x00:
+                setRtttlPlay(1);
+                break;
+              // PAUSERT    5501
+              case 0x01:
+                setRtttlPlay(0);
+                break;
+              // STOPRT   5502
+              case 0x02:
+                setRtttlPlay(2);
+                break;
+            }
+            break;
+          case 0x56:
+            // LOADRT   540R
+            reg1 = (op2 & 0xf0) >> 4;
+            reg2 = op2 & 0xf;
+            addTone(reg[reg1], reg[reg2]);
+            break;
       }
       break;
     case 0x6:
