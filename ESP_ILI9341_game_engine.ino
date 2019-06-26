@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_MCP23017.h>
-#include <Adafruit_NeoPixel.h>
+//#include <Adafruit_NeoPixel.h>
+#include <FastLED.h>
 #include <Ticker.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -15,7 +16,8 @@ TFT_eSPI tft = TFT_eSPI();
 
 #ifdef ESPBOY
 Adafruit_MCP23017 mcp;
-Adafruit_NeoPixel pixels(LEDquantity, LEDPIN, NEO_GRB + NEO_KHZ800);
+//Adafruit_NeoPixel pixels(LEDquantity, LEDPIN, NEO_GRB + NEO_KHZ800);
+CRGB leds[1];
 #endif
 
 // ------------------begin ESP8266'centric----------------------------------
@@ -246,15 +248,6 @@ void setup() {
  #ifdef ESPBOY
   Serial.println();
   Serial.println(F("ESPboy"));
-  pinMode(LEDPIN, OUTPUT);
-  pixels.begin();
-  delay(100);
-  pixels.setPixelColor(0, pixels.Color(0,0,0));
-  pixels.show();
-  Serial.println(pixels.getPixelColor(0));
-  pixels.setPixelColor(0, pixels.Color(11,0,192));
-  pixels.show();
-  Serial.println(pixels.getPixelColor(0));
   //buttons on mcp23017 init
   mcp.begin(MCP23017address);
   delay (100);
@@ -262,6 +255,10 @@ void setup() {
      mcp.pinMode(i, INPUT);
      mcp.pullUp(i, HIGH);
   }
+  FastLED.addLeds<WS2812B, LEDPIN, RGB>(leds, 1);
+  leds[0] = CRGB( 128, 128, 128);
+  FastLED.show();
+  delay(50);
   //TFT init 
   mcp.pinMode(csTFTMCP23017pin, OUTPUT);
   mcp.digitalWrite(csTFTMCP23017pin, LOW);
@@ -297,6 +294,9 @@ void setup() {
   setColor(1);
  #ifdef ESPBOY
   setScreenResolution(128, 128);
+  leds[0] = CRGB::Black;
+  FastLED.show();
+  delay(50);
  #else
   setScreenResolution(239, 239);
  #endif

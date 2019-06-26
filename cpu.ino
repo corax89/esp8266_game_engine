@@ -198,10 +198,12 @@ void setLedColor(uint16_t r5g6b5){
   r = ((((r5g6b5 >> 11) & 0x1F) * 527) + 23) >> 6;
   g = ((((r5g6b5 >> 5) & 0x3F) * 259) + 33) >> 6;
   b = (((r5g6b5 & 0x1F) * 527) + 23) >> 6;
-  pixels.setPixelColor(0, pixels.Color(30,0,0));
+  leds[0] = CRGB( r, g, b);
+  FastLED.show();
+  //pixels.setPixelColor(0, pixels.Color(30,0,0));
   //pixels.setPixelColor(0, pixels.Color(r, g, b));
-  pixels.show();
-  delay(100);
+  //pixels.show();
+  //delay(100);
 }
 #endif
 
