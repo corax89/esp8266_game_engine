@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <Adafruit_MCP23017.h>
-//#include <Adafruit_NeoPixel.h>
 #include <FastLED.h>
 #include <Ticker.h>
 #include <SPI.h>
@@ -256,7 +255,7 @@ void setup() {
      mcp.pullUp(i, HIGH);
   }
   FastLED.addLeds<WS2812B, LEDPIN, RGB>(leds, 1);
-  leds[0] = CRGB( 128, 128, 128);
+  leds[0] = CRGB::Black;
   FastLED.show();
   delay(50);
   //TFT init 
@@ -294,6 +293,7 @@ void setup() {
   setColor(1);
  #ifdef ESPBOY
   setScreenResolution(128, 128);
+  delay(50);
   leds[0] = CRGB::Black;
   FastLED.show();
   delay(50);

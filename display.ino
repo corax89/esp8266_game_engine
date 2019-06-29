@@ -1,9 +1,10 @@
 #include "font_a.c"
 #include "settings.h"
 
-#define SPRITE_IS_SOLID(a)    (sprite_table[a].flags & 1)
-#define SPRITE_IS_SCROLLED(a) (sprite_table[a].flags & 2)
-#define SPRITE_IS_ONEBIT(a)   (sprite_table[a].flags & 4)
+#define SPRITE_IS_SOLID(a)              (sprite_table[a].flags & 1)
+#define SPRITE_IS_SCROLLED(a)           (sprite_table[a].flags & 2)
+#define SPRITE_IS_ONEBIT(a)             (sprite_table[a].flags & 4)
+#define SPRITE_IS_FLIP_HORIZONTAL(a)    (sprite_table[a].flags & 8)
 
 struct sprite {
   uint16_t address;
@@ -16,7 +17,7 @@ struct sprite {
   int16_t angle;
   int8_t lives;
   int8_t collision;
-  uint8_t flags; //0 0 0 0 0 isonebit scrolled solid
+  uint8_t flags; //0 0 0 0 fliphorizontal isonebit scrolled solid
   int8_t gravity;
   uint16_t oncollision;
   uint16_t onexitscreen;
@@ -451,8 +452,8 @@ void redrawParticles(){
 int8_t getSpriteInXY(int16_t x, int16_t y){
   for(int8_t n = 0; n < 32; n++){
     if(sprite_table[n].lives > 0)
-      if(sprite_table[n].x < x && sprite_table[n].x + sprite_table[n].width > x &&
-        sprite_table[n].y < y  && sprite_table[n].y + sprite_table[n].height > y)
+      if((sprite_table[n].x >> 2) < x && (sprite_table[n].x >> 2) + sprite_table[n].width > x &&
+        (sprite_table[n].y >> 2) < y  && (sprite_table[n].y >> 2) + sprite_table[n].height > y)
           return n;
   }
   return - 1;
@@ -471,19 +472,20 @@ void moveSprites(){
 void redrawSprites(){
   for(uint8_t i = 0; i < 32; i++){
     if(sprite_table[i].lives > 0){
-      if(sprite_table[i].x + sprite_table[i].width < 0 || sprite_table[i].x > 127 || sprite_table[i].y + sprite_table[i].height < 0 || sprite_table[i].y > 127){
-        if(sprite_table[i].onexitscreen > 0)
-           setinterrupt(sprite_table[i].onexitscreen, i);
+      if((sprite_table[i].x >> 2) + sprite_table[i].width < 0 || (sprite_table[i].x >> 2) > 127 
+        || (sprite_table[i].y >> 2) + sprite_table[i].height < 0 || (sprite_table[i].y >> 2) > 127){
+          if(sprite_table[i].onexitscreen > 0)
+               setinterrupt(sprite_table[i].onexitscreen, i);
       }
       else
-        drawSpr(i, sprite_table[i].x, sprite_table[i].y);
+        drawSpr(i, sprite_table[i].x >> 2, sprite_table[i].y >> 2);
     }
   }
 }
 
 uint16_t getTileInXY(int16_t x, int16_t y){
   uint32_t p;
-  if(x < tile.x || y < tile.y || x > tile.x + tile.pixwidth/*tile.imgwidth * tile.width*/ || y > tile.y + tile.pixheight/*tile.imgheight * tile.height*/)
+  if(x < tile.x || y < tile.y || x > tile.x + tile.pixwidth || y > tile.y + tile.pixheight)
     return 0;
   p = ((x - tile.x) / (int16_t)tile.imgwidth) + ((y - tile.y) / (int16_t)tile.imgheight * (int16_t)tile.width);
   return readInt(tile.adr + p * 2);
@@ -508,19 +510,19 @@ void resolveCollision(uint8_t n, uint8_t i){
   if((sprite_table[n].speedy >= 0 && sprite_table[i].speedy <= 0) || (sprite_table[n].speedy <= 0 && sprite_table[i].speedy >= 0)){
     if(sprite_table[n].y > sprite_table[i].y){
       if(sprite_table[i].gravity){
-        sprite_table[i].y = sprite_table[n].y - sprite_table[i].height;
+        sprite_table[i].y = sprite_table[n].y - (sprite_table[i].height << 2);
       }
     }
     else{
       if(sprite_table[n].gravity){
-        sprite_table[n].y = sprite_table[i].y - sprite_table[n].height;
+        sprite_table[n].y = sprite_table[i].y - (sprite_table[n].height << 2);
       }
     }
   }
-  if(sprite_table[n].x < sprite_table[i].x + sprite_table[i].width && 
-    sprite_table[n].x + sprite_table[n].width > sprite_table[i].x &&
-    sprite_table[n].y < sprite_table[i].y + sprite_table[i].height && 
-    sprite_table[n].y + sprite_table[n].height > sprite_table[i].y){
+  if(sprite_table[n].x < sprite_table[i].x + (sprite_table[i].width << 2) && 
+    sprite_table[n].x + (sprite_table[n].width << 2) > sprite_table[i].x &&
+    sprite_table[n].y < sprite_table[i].y + (sprite_table[i].height << 2) && 
+    sprite_table[n].y + (sprite_table[n].height << 2) > sprite_table[i].y){
       if(sprite_table[n].x > sprite_table[i].x){
         sprite_table[n].x++;
         sprite_table[i].x--;
@@ -558,17 +560,19 @@ void resolveCollision(uint8_t n, uint8_t i){
 
 void testSpriteCollision(){
   byte n, i;
-  int16_t x0, y0, newspeed;
+  int16_t x0, y0, x1, y1, newspeed;
   for(n = 0; n < 32; n++)
     sprite_table[n].collision = -1;
   for(n = 0; n < 32; n++){
     if(sprite_table[n].lives > 0){
+      x0 = sprite_table[n].x >> 2;
+      y0 = sprite_table[n].y >> 2;
       for(i = 0; i < n; i++){
         if(sprite_table[i].lives > 0){
-          if(sprite_table[n].x < sprite_table[i].x + sprite_table[i].width && 
-          sprite_table[n].x + sprite_table[n].width > sprite_table[i].x &&
-          sprite_table[n].y < sprite_table[i].y + sprite_table[i].height && 
-          sprite_table[n].y + sprite_table[n].height > sprite_table[i].y){
+          x1 = sprite_table[i].x >> 2;
+          y1 = sprite_table[i].y >> 2;
+          if(x0 < x1 + sprite_table[i].width && x0 + sprite_table[n].width > x1 
+          && y0 < y1 + sprite_table[i].height && y0 + sprite_table[n].height > y1){
             sprite_table[n].collision = i;
             sprite_table[i].collision = n;
             if(sprite_table[n].oncollision > 0)
@@ -582,28 +586,23 @@ void testSpriteCollision(){
         }
       }
       if((SPRITE_IS_SOLID(n)) && tile.adr > 0){
-          //x0 = ((sprite_table[n].x + sprite_table[n].width / 2 - tile.x) / (int16_t)tile.imgwidth);
-          //y0 = ((sprite_table[n].y + sprite_table[n].height / 2 - tile.y + tile.imgheight) / (int16_t)tile.imgheight) - 1;
-          //if(x0 >= -1 && x0 <= tile.width && y0 >= -1 && y0 <= tile.height){
-              if(getTileInXY(sprite_table[n].x, sprite_table[n].y) 
-              || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y)
-              || getTileInXY(sprite_table[n].x , sprite_table[n].y + sprite_table[n].height)
-              || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y + sprite_table[n].height)){
+              if(getTileInXY(x0, y0) || getTileInXY(x0 + sprite_table[n].width, y0)
+              || getTileInXY(x0 , y0 + sprite_table[n].height) || getTileInXY(x0 + sprite_table[n].width, y0 + sprite_table[n].height)){
                 sprite_table[n].y = sprite_table[n].y - sprite_table[n].speedy;
-                if(getTileInXY(sprite_table[n].x, sprite_table[n].y) 
-                  || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y)
-                  || getTileInXY(sprite_table[n].x, sprite_table[n].y + sprite_table[n].height)
-                  || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y + sprite_table[n].height)){
+                y0 = sprite_table[n].y >> 2;
+                if(getTileInXY(x0, y0) 
+                  || getTileInXY(x0 + sprite_table[n].width, y0)|| getTileInXY(x0, y0 + sprite_table[n].height)
+                  || getTileInXY(x0 + sprite_table[n].width,y0 + sprite_table[n].height)){
                     sprite_table[n].x = sprite_table[n].x - sprite_table[n].speedx;
                     sprite_table[n].speedx = (sprite_table[n].x - (sprite_table[n].x - sprite_table[n].speedx)) / 2;
                   }
                 sprite_table[n].speedy = sprite_table[n].speedy / 2 - sprite_table[n].gravity;
-                if(getTileInXY(sprite_table[n].x, sprite_table[n].y + sprite_table[n].height)
-                  || getTileInXY(sprite_table[n].x + sprite_table[n].width, sprite_table[n].y + sprite_table[n].height)){
+                x0 = sprite_table[n].x >> 2;
+                y0 = sprite_table[n].y >> 2;
+                if(getTileInXY(x0, y0 + sprite_table[n].height) || getTileInXY(x0 + sprite_table[n].width, y0 + sprite_table[n].height)){
                     sprite_table[n].y--;
                   }
               }
-            //}
          
         }
         
@@ -636,8 +635,8 @@ void setSpr(uint16_t n, uint16_t adr){
 }
 
 void setSprPosition(int8_t n, uint16_t x, uint16_t y){
-  sprite_table[n].x = x;
-  sprite_table[n].y = y;
+  sprite_table[n].x = x << 2;
+  sprite_table[n].y = y << 2;
 }
 
 void spriteSetDirectionAndSpeed(int8_t n, uint16_t speed, int16_t dir){
@@ -670,9 +669,9 @@ int16_t angleBetweenSprites(int8_t n1, int8_t n2){
 int16_t getSpriteValue(int8_t n, uint8_t t){
   switch(t){
     case 0:
-      return sprite_table[n].x;
+      return sprite_table[n].x >> 2;
     case 1:
-      return sprite_table[n].y;
+      return sprite_table[n].y >> 2;
     case 2:
       return sprite_table[n].speedx;
     case 3:
@@ -698,10 +697,10 @@ int16_t getSpriteValue(int8_t n, uint8_t t){
 void setSpriteValue(int8_t n, uint8_t t, int16_t v){
  switch(t){
     case 0:
-      sprite_table[n].x = v;
+      sprite_table[n].x = v << 2;
       return;
     case 1:
-      sprite_table[n].y = v;
+      sprite_table[n].y = v << 2;
       return;
     case 2:
       sprite_table[n].speedx = (int8_t) v;
@@ -753,6 +752,12 @@ void setSpriteValue(int8_t n, uint8_t t, int16_t v){
       else
         sprite_table[n].flags &= ~0x04;
       return;
+    case 15:
+      if(v != 0)
+        sprite_table[n].flags |= 0x08;
+      else
+        sprite_table[n].flags &= ~0x08;
+      return;
  }
 }
 
@@ -784,66 +789,127 @@ void drawSpr(int8_t n, int16_t x, int16_t y){
   uint16_t adr = sprite_table[n].address;
   uint8_t w = sprite_table[n].width;
   uint8_t h = sprite_table[n].height;
+  uint8_t ww = w;
   int16_t c, s;
   uint8_t pixel, ibit, i;
   w = w / 2;
-  if(SPRITE_IS_ONEBIT(n) == 0){
-    if(sprite_table[n].angle == 0){
-      for(int8_t y1 = 0; y1 < h; y1 ++)
-        if(y1 + y >= -h && y1 + y < 128 + h){
-          for(int8_t x1 = 0; x1 < w; x1++){
-            pixel = readMem(adr + x1 + y1 * w);
-            if((pixel & 0xf0) > 0)
-              drawSprPixel(pixel >> 4, x, y, x1 * 2, y1);
-            if((pixel & 0x0f) > 0)
-              drawSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1);
+  if(!SPRITE_IS_ONEBIT(n)){
+    if(!sprite_table[n].angle){
+      if(SPRITE_IS_FLIP_HORIZONTAL(n)){
+        for(int8_t y1 = 0; y1 < h; y1 ++)
+          if(y1 + y >= -h && y1 + y < 128 + h){
+            for(int8_t x1 = 0; x1 < w; x1++){
+              pixel = readMem(adr + x1 + y1 * w);
+              if((pixel & 0xf0) > 0)
+                drawSprPixel(pixel >> 4, x, y, ww - x1 * 2, y1);
+              if((pixel & 0x0f) > 0)
+                drawSprPixel(pixel & 0xf, x, y, ww - (x1 * 2 + 1), y1);
+            }
           }
-        }
+      }
+      else{
+        for(int8_t y1 = 0; y1 < h; y1 ++)
+          if(y1 + y >= -h && y1 + y < 128 + h){
+            for(int8_t x1 = 0; x1 < w; x1++){
+              pixel = readMem(adr + x1 + y1 * w);
+              if((pixel & 0xf0) > 0)
+                drawSprPixel(pixel >> 4, x, y, x1 * 2, y1);
+              if((pixel & 0x0f) > 0)
+                drawSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1);
+            }
+          }
+      }
     }
     else{
       c = getCos(sprite_table[n].angle);
       s = getSin(sprite_table[n].angle);
-      for(int8_t y1 = 0; y1 < h; y1 ++)
-        if(y1 + y >= -h && y1 + y < 128 + h){
-          for(int8_t x1 = 0; x1 < w; x1++)
-            if(x1 + x >= -w && x1 + x < 128 + w){
-              pixel = readMem(adr + x1 + y1 * w);
-              if((pixel & 0xf0) > 0)
-                drawRotateSprPixel(pixel >> 4, x, y, x1 * 2, y1, w, h / 2, c, s);
-              if((pixel & 0x0f) > 0)
-                drawRotateSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1, w, h / 2, c, s);
-            }   
-        }
+      if(SPRITE_IS_FLIP_HORIZONTAL(n)){
+        for(int8_t y1 = 0; y1 < h; y1 ++)
+          if(y1 + y >= -h && y1 + y < 128 + h){
+            for(int8_t x1 = 0; x1 < w; x1++)
+              if(x1 + x >= -w && x1 + x < 128 + w){
+                pixel = readMem(adr + x1 + y1 * w);
+                if((pixel & 0xf0) > 0)
+                  drawRotateSprPixel(pixel >> 4, x, y, ww - x1 * 2, y1, w, h / 2, c, s);
+                if((pixel & 0x0f) > 0)
+                  drawRotateSprPixel(pixel & 0xf, x, y, ww - (x1 * 2 + 1), y1, w, h / 2, c, s);
+              }   
+          }
+      }
+      else{
+        for(int8_t y1 = 0; y1 < h; y1 ++)
+          if(y1 + y >= -h && y1 + y < 128 + h){
+            for(int8_t x1 = 0; x1 < w; x1++)
+              if(x1 + x >= -w && x1 + x < 128 + w){
+                pixel = readMem(adr + x1 + y1 * w);
+                if((pixel & 0xf0) > 0)
+                  drawRotateSprPixel(pixel >> 4, x, y, x1 * 2, y1, w, h / 2, c, s);
+                if((pixel & 0x0f) > 0)
+                  drawRotateSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1, w, h / 2, c, s);
+              }   
+          }
+      }
     }
   }
   else{
-    if(sprite_table[n].angle == 0){
-      for(int8_t y1 = 0; y1 < h; y1++)
-        for(int8_t x1 = 0; x1 < w; x1++){
-          if(i % 8 == 0){
-            ibit = readMem(adr);
-            adr++;
+    i = 0;
+    if(!sprite_table[n].angle){
+      if(SPRITE_IS_FLIP_HORIZONTAL(n)){
+        for(int8_t y1 = 0; y1 < h; y1++)
+          for(int8_t x1 = 0; x1 < ww; x1++){
+            if(i % 8 == 0){
+              ibit = readMem(adr);
+              adr++;
+            }
+            if(ibit & 0x80)
+              drawSprPixel(color, x, y, ww - x1, y1);
+            ibit = ibit << 1;
+            i++;
           }
-          if(ibit & 0x80)
-            drawSprPixel(color, x, y, x1, y1);
-          ibit = ibit << 1;
-          i++;
-        }
+      }
+      else{
+        for(int8_t y1 = 0; y1 < h; y1++)
+          for(int8_t x1 = 0; x1 < ww; x1++){
+            if(i % 8 == 0){
+              ibit = readMem(adr);
+              adr++;
+            }
+            if(ibit & 0x80)
+              drawSprPixel(color, x, y, x1, y1);
+            ibit = ibit << 1;
+            i++;
+          }
+      }
     }
     else{
       c = getCos(sprite_table[n].angle);
       s = getSin(sprite_table[n].angle);
-      for(int8_t y1 = 0; y1 < h; y1++)
-        for(int8_t x1 = 0; x1 < w; x1++){
-          if(i % 8 == 0){
-            ibit = readMem(adr);
-            adr++;
+      if(SPRITE_IS_FLIP_HORIZONTAL(n)){
+        for(int8_t y1 = 0; y1 < h; y1++)
+          for(int8_t x1 = 0; x1 < ww; x1++){
+            if(i % 8 == 0){
+              ibit = readMem(adr);
+              adr++;
+            }
+            if(ibit & 0x80)
+              drawRotateSprPixel(color, x, y, ww - x1, y1, w, h/2, c, s);
+            ibit = ibit << 1;
+            i++;
           }
-          if(ibit & 0x80)
-            drawRotateSprPixel(color, x, y, x1 * 2 + 1, y1, w, h / 2, c, s);
-          ibit = ibit << 1;
-          i++;
-        }
+      }
+      else{
+        for(int8_t y1 = 0; y1 < h; y1++)
+          for(int8_t x1 = 0; x1 < ww; x1++){
+            if(i % 8 == 0){
+              ibit = readMem(adr);
+              adr++;
+            }
+            if(ibit & 0x80)
+              drawRotateSprPixel(color, x, y, x1, y1, w, h/2, c, s);
+            ibit = ibit << 1;
+            i++;
+          }
+      }
     }
   }
 }
@@ -1183,7 +1249,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
-          sprite_table[n].x -= 2;
+          sprite_table[n].x -= 8;
     }
     else if(direction == 1){
       for(uint8_t x = 0; x < 64; x++){
@@ -1199,7 +1265,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
-          sprite_table[n].y--;
+          sprite_table[n].y -= 4;
     }
     else if(direction == 0){
       for(uint8_t y = 0; y < 128; y++){
@@ -1215,7 +1281,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
-          sprite_table[n].x += 2;
+          sprite_table[n].x += 8;
     }
     else {
       for(uint8_t x = 0; x < 64; x++){
@@ -1231,7 +1297,7 @@ void scrollScreen(uint8_t step, uint8_t direction){
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
-          sprite_table[n].y++;
+          sprite_table[n].y += 4;
     }
     if(tile.adr > 0)
       tileDrawLine(step, direction);
