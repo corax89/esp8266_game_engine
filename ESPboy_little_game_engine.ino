@@ -7,7 +7,9 @@
 #include <coos.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
+#include "ESPboyLogo.h"
 #include "settings.h"
+
 ADC_MODE(ADC_VCC);
 
 // Use hardware SPI
@@ -263,6 +265,13 @@ void setup() {
   mcp.digitalWrite(csTFTMCP23017pin, LOW);
   tft.init();            // initialize LCD
   tft.setRotation(0);
+  tft.fillScreen(0x0000);
+  tft.setTextSize(1); 
+  tft.drawXBitmap(30, 24, ESPboyLogo, 68, 64, 0xFFE0);
+  tft.setTextColor(0xFFE0);
+  tft.setCursor(10,102);
+  tft.print ("Little game engine");
+  delay (2000);
  #else
   Wire.begin(D2, D1);
   geti2cAdress();
