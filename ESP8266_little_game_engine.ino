@@ -1,14 +1,17 @@
 #include <Arduino.h>
-#include <Adafruit_MCP23017.h>
-#include <FastLED.h>
 #include <Ticker.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <coos.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
-#include "ESPboyLogo.h"
+
 #include "settings.h"
+#ifdef ESPBOY
+  #include "ESPboyLogo.h"
+  #include <Adafruit_MCP23017.h>
+  #include <FastLED.h>
+#endif
 
 ADC_MODE(ADC_VCC);
 
@@ -270,7 +273,7 @@ void setup() {
   tft.drawXBitmap(30, 24, ESPboyLogo, 68, 64, 0xFFE0);
   tft.setTextColor(0xFFE0);
   tft.setCursor(10,102);
-  tft.print ("Little game engine");
+  tft.print(F("Little game engine"));
   delay (2000);
  #else
   Wire.begin(D2, D1);

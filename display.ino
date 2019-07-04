@@ -295,8 +295,8 @@ void setEmitter(uint16_t time, int16_t dir, int16_t dir1, int16_t speed){
 }
 
 void drawParticle(int16_t x, int16_t y, uint8_t color){
-  emitter.x = x;
-  emitter.y = y;
+  emitter.x = x << 1;
+  emitter.y = y << 1;
   emitter.color = color;
   emitter.timer = emitter.time;
 }
@@ -427,8 +427,8 @@ void redrawParticles(){
   }
   for(n = 0; n < PARTICLE_COUNT; n++)
     if(particles[n].time > 0){
-      x = (particles[n].x & 127) / 2;
-      y = particles[n].y & 127;
+      x = ((particles[n].x >> 1) & 127) / 2;
+      y = (particles[n].y >> 1) & 127;
       if(particles[n].x & 1)
         sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
       else
@@ -444,7 +444,7 @@ void redrawParticles(){
         particles[n].x += particles[n].speedx / 2;
         particles[n].y += particles[n].speedy / 2;
       }
-      if(particles[n].x < 0 || particles[n].x > 128 || particles[n].y < 0 || particles[n].y > 128)
+      if(particles[n].x < 0 || particles[n].x > 256 || particles[n].y < 0 || particles[n].y > 256)
           particles[n].time = 0;
     }
 }
