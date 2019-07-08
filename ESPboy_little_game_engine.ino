@@ -262,6 +262,7 @@ void setup() {
   FastLED.addLeds<WS2812B, LEDPIN, RGB>(leds, 1);
   leds[0] = CRGB::Black;
   FastLED.show();
+  FastLED.show();
   delay(50);
   //TFT init 
   mcp.pinMode(csTFTMCP23017pin, OUTPUT);
@@ -280,6 +281,11 @@ void setup() {
   geti2cAdress();
   tft.init();            // initialize LCD
   tft.setRotation(1);
+ #endif
+ #ifdef ESPBOY
+  setScreenResolution(128, 128);
+ #else
+  setScreenResolution(239, 239);
  #endif
   tft.fillScreen(0x0000);
   tft.setTextSize(1);
@@ -303,15 +309,6 @@ void setup() {
   randomSeed(ESP.getVcc());
   clearScr(0);
   setColor(1);
- #ifdef ESPBOY
-  setScreenResolution(128, 128);
-  delay(50);
-  leds[0] = CRGB::Black;
-  FastLED.show();
-  delay(50);
- #else
-  setScreenResolution(239, 239);
- #endif
   randomSeed(analogRead(0));
   timer.attach(0.001, timer_tick);
   coos.register_task(coos_cpu); 
