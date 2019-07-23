@@ -5,7 +5,6 @@
 #include <coos.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
-
 #include "settings.h"
 #ifdef ESPBOY
   #include "ESPboyLogo.h"
@@ -262,6 +261,7 @@ void setup() {
   FastLED.addLeds<WS2812B, LEDPIN, RGB>(leds, 1);
   leds[0] = CRGB::Black;
   FastLED.show();
+  FastLED.show();
   delay(50);
   //TFT init 
   mcp.pinMode(csTFTMCP23017pin, OUTPUT);
@@ -305,9 +305,6 @@ void setup() {
   setColor(1);
  #ifdef ESPBOY
   setScreenResolution(128, 128);
-  delay(50);
-  leds[0] = CRGB::Black;
-  FastLED.show();
   delay(50);
  #else
   setScreenResolution(239, 239);
