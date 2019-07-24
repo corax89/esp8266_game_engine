@@ -13,6 +13,10 @@
   #include <FastLED.h>
 #endif
 
+#ifdef ESPBOY
+  #define SOUNDpin          D3
+#endif
+
 ADC_MODE(ADC_VCC);
 
 // Use hardware SPI
@@ -275,6 +279,13 @@ void setup() {
   tft.setTextColor(0xFFE0);
   tft.setCursor(10,102);
   tft.print(F("Little game engine"));
+  //sound init and test
+  pinMode(SOUNDpin, OUTPUT);
+  tone(SOUNDpin, 200, 100);
+  delay(100);
+  tone(SOUNDpin, 100, 100);
+  delay(100);
+  noTone(SOUNDpin);
   delay (2000);
  #else
   Wire.begin(D2, D1);
