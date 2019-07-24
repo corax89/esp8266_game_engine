@@ -3,6 +3,9 @@
 Port of wonderful Igor's ESP little game engine (ESP-LGE) to ESPboy,
 thanks Igor!
 
+LGE is a fantasy console for making, sharing and playing tiny games and other computer programs. 
+You can make you game or program using online compiler and run compiled binary on portable ESPboy console thouse feels like a regular console. Check few, colored, nostalgic LGE games from the package, by uploading them to SPIFFS.
+
 Original ESP-LGE:
 https://github.com/corax89/esp8266_game_engine
 
@@ -25,7 +28,7 @@ How to compile for ESPboy:
 1. Install Arduino IDE
 2. Clone and download "ESPboy_little_game_engine" and rename the folder "ESPboy_little_game_engine-master" to "ESPboy_little_game_engine"
 3. Unpack two libraries (a_coos and TFT_eSPI) from file "libraries.7z" to the Arduino/Libraries folder
-4. Change settings in file «User_Setup.h» of TFT_eSPI library
+4. Change settings in file Â«User_Setup.hÂ» of TFT_eSPI library
   - 50  #define TFT_WIDTH  128
   - 53  #define TFT_HEIGHT 128
   - 67  #define ST7735_GREENTAB3
@@ -44,8 +47,8 @@ https://www.youtube.com/watch?v=25eLIdLKgHs
 
 How to recompile CHIP8 games:
 1. Use source file https://github.com/corax89/game_engine_for_esp8266_with_compiler/blob/master/example/chip8.c
-2. Put your CHIP8 bit code to char "Memory[3583] = {};" at string ¹58
-3. Check buttons remap at strings ¹9-20
+2. Put your CHIP8 bit code to char "Memory[3583] = {};" at string Â¹58
+3. Check buttons remap at strings Â¹9-20
 4. Compile this .c to .bin with "Online ESP-LGE SDK, compiler, emulator" https://corax89.github.io/esp8266Game/index.html
 5. Upload .bit to your ESPboy SPIFFS
 
