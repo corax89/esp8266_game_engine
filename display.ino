@@ -222,16 +222,16 @@ void display_init(){
     sprite_table[i].oncollision = 0;
   }
   for(int8_t i = 0; i < 16; i++){
-    palette[i] = (uint16_t)pgm_read_word_near(bpalette + i);
-    sprtpalette[i] = (uint16_t)pgm_read_word_near(bpalette + i);
+    palette[i] = bpalette[i];
+    sprtpalette[i] = bpalette[i];
   }
   emitter.time = 0;
   emitter.timer = 0;
   tile.adr = 0;
-  for(byte i = 0; i < PARTICLE_COUNT; i++)
+  for(int8_t i = 0; i < PARTICLE_COUNT; i++)
     particles[i].time = 0;
   for(uint16_t i = 0; i < 340; i++)
-      charArray[i] = 0;
+    charArray[i] = 0;
   imageSize = 1;
   regx = 0;
   regy = 0;
@@ -1486,4 +1486,3 @@ void putchar(char c, uint8_t x, uint8_t y) {
 }
 
 #pragma GCC pop_options
-
