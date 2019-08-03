@@ -1,8 +1,5 @@
 # ESPboy_little_game_engine
 
-Port of wonderful Igor's ESP little game engine (ESP-LGE) to ESPboy,
-thanks Igor!
-
 LGE is a fantasy console for making, sharing and playing tiny games and other computer programs. 
 You can make you game or program using online compiler and run compiled binary on portable ESPboy console thouse feels like a regular console. Check few, colored, nostalgic LGE games from the package, by uploading them to SPIFFS.
 
