@@ -5,11 +5,16 @@
 #include <coos.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
+
 #include "settings.h"
 #ifdef ESPBOY
   #include "ESPboyLogo.h"
   #include <Adafruit_MCP23017.h>
   #include <FastLED.h>
+#endif
+
+#ifdef ESPBOY
+  #define SOUNDpin          D3
 #endif
 
 ADC_MODE(ADC_VCC);
@@ -274,12 +279,24 @@ void setup() {
   tft.setTextColor(0xFFE0);
   tft.setCursor(10,102);
   tft.print(F("Little game engine"));
+  //sound init and test
+  pinMode(SOUNDpin, OUTPUT);
+  tone(SOUNDpin, 200, 100);
+  delay(100);
+  tone(SOUNDpin, 100, 100);
+  delay(100);
+  noTone(SOUNDpin);
   delay (2000);
  #else
   Wire.begin(D2, D1);
   geti2cAdress();
   tft.init();            // initialize LCD
   tft.setRotation(1);
+ #endif
+ #ifdef ESPBOY
+  setScreenResolution(128, 128);
+ #else
+  setScreenResolution(239, 239);
  #endif
   tft.fillScreen(0x0000);
   tft.setTextSize(1);
@@ -303,12 +320,6 @@ void setup() {
   randomSeed(ESP.getVcc());
   clearScr(0);
   setColor(1);
- #ifdef ESPBOY
-  setScreenResolution(128, 128);
-  delay(50);
- #else
-  setScreenResolution(239, 239);
- #endif
   randomSeed(analogRead(0));
   timer.attach(0.001, timer_tick);
   coos.register_task(coos_cpu); 
