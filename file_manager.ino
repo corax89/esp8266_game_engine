@@ -20,7 +20,7 @@ void fileList(String path) {
   int16_t startpos = 0;
   int16_t fileCount = 0;
   int16_t skip = 0;
-  uint8_t i;
+  uint8_t i,b;
   for(i = 0; i < 192; i++)
     mem[i + 1024 + 192] = pgm_read_byte_near(iconBin + i);
   setImageSize(1);
@@ -55,11 +55,18 @@ void fileList(String path) {
           i++;
         i++;
         if(s[i] == 'l' && s[i + 1] == 'g' && s[i + 2] == 'e'){
-          entry.seek(5, SeekSet);
-          for(i = 0; i < 192; i++)
-            if(entry.available())
-              mem[i + 1024] = (uint8_t)entry.read(); 
-          drawImg(1024, 0, lst * 17 - 16, 24, 16);
+          entry.seek(3, SeekSet);
+          if(entry.available())
+            b = (uint8_t)entry.read();
+          if(b & 0x2){
+            entry.seek(5, SeekSet);
+            for(i = 0; i < 192; i++)
+              if(entry.available())
+                mem[i + 1024] = (uint8_t)entry.read(); 
+            drawImg(1024, 0, lst * 17 - 16, 24, 16);
+          }
+          else
+            drawImg(1024 + 192, 0, lst * 17 - 16, 24, 16);
         }
         else if(s[i] == 'b' && s[i + 1] == 'i' && s[i + 2] == 'n')
           drawImg(1024 + 192, 0, lst * 17 - 16, 24, 16);
@@ -176,5 +183,3 @@ void loadLgeFromSPIFS(char fileName[]){
   Serial.println(system_get_free_heap_size());
   f.close();  //Close file
 }
-
-

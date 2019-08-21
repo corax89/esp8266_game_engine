@@ -13,9 +13,7 @@
   #include <FastLED.h>
 #endif
 
-#ifdef ESPBOY
-  #define SOUNDpin          D3
-#endif
+
 
 ADC_MODE(ADC_VCC);
 
@@ -280,12 +278,12 @@ void setup() {
   tft.setCursor(10,102);
   tft.print(F("Little game engine"));
   //sound init and test
-  pinMode(SOUNDpin, OUTPUT);
-  tone(SOUNDpin, 200, 100);
+  pinMode(SOUNDPIN, OUTPUT);
+  tone(SOUNDPIN, 200, 100);
   delay(100);
-  tone(SOUNDpin, 100, 100);
+  tone(SOUNDPIN, 100, 100);
   delay(100);
-  noTone(SOUNDpin);
+  noTone(SOUNDPIN);
   delay (2000);
  #else
   Wire.begin(D2, D1);
