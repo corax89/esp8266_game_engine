@@ -32,3 +32,4 @@
 #endif
 
 #define PARTICLE_COUNT 32
+#define EEPROM_SIZE   512

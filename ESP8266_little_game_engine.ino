@@ -5,6 +5,7 @@
 #include <coos.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
+#include <EEPROM.h>
 
 #include "settings.h"
 #ifdef ESPBOY
@@ -12,8 +13,6 @@
   #include <Adafruit_MCP23017.h>
   #include <FastLED.h>
 #endif
-
-
 
 ADC_MODE(ADC_VCC);
 
@@ -104,6 +103,17 @@ void loadFromSerial(){
   cpuInit();
 }
 
+void viewEEPROM(){
+  for(int16_t i = 0; i < EEPROM_SIZE; i++){
+    if(i % 32 == 0)
+      Serial.println();
+    if(EEPROM.read(i) < 0x10)
+      Serial.print('0');
+    Serial.print(EEPROM.read(i), HEX);
+    Serial.print(' ');
+  }
+}
+
 void changeSettings(){
   fileIsLoad = false;
   if(Serial.available()){
@@ -122,6 +132,9 @@ void changeSettings(){
     else if(c == 'd'){
       debug();
       return;
+    }
+    else if(c == 'e'){
+      viewEEPROM();
     }
     else if(c == 'v'){
       Serial.println();
@@ -251,6 +264,7 @@ void setup() {
   system_update_cpu_freq(FREQUENCY);
   // ------------------end ESP8266'centric------------------------------------
   Serial.begin (115200);
+  EEPROM.begin(EEPROM_SIZE);
  #ifdef ESPBOY
   Serial.println();
   Serial.println(F("ESPboy"));

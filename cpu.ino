@@ -1,9 +1,12 @@
+#include <EEPROM.h>
+
 #define FIFO_MAX_SIZE 32
 
 int16_t reg[16];
 int16_t shadow_reg[16];
 uint16_t pc = 0;
 uint16_t interrupt = 0;
+uint16_t dataName = 0;
 byte carry = 0;
 byte zero = 0;
 byte negative = 0;
@@ -12,6 +15,7 @@ int8_t color = 1;
 int8_t bgcolor = 0;
 int8_t keyPosition;
 String s_buffer;
+String loadedFileName;
 static const char keyArray[] PROGMEM = {"qwertyuiop[]{}()=789\basdfghjkl:;\"/#$@0456\nzxcvbnm<>?.,!%+*-123 "};
 
 struct Fifo_t {
@@ -78,6 +82,10 @@ void setinterrupt(uint16_t adr, int16_t param){
     pushInFifo(adr);
     pushInFifo(param);
   }
+}
+
+void setLoadedFileName(String s){
+  loadedFileName = s;
 }
 
 void cpuInit(){
@@ -192,6 +200,99 @@ int16_t distancepp(int16_t x1, int16_t y1, int16_t x2, int16_t y2){
   return isqrt((x2 - x1)*(x2 - x1) + (y2-y1)*(y2-y1));
 }
 
+void setDataName(uint16_t address){
+  dataName = address;
+}
+
+boolean testDataName(uint16_t pos){
+  uint8_t c;
+  if(dataName){
+    for(uint16_t i = 0; i < 12; i++){
+      c = EEPROM.read(pos + i);
+      if(c != readMem(dataName + i))
+        return false;
+      if(c == 0)
+        return true;
+    }
+  }
+  else{
+    for(uint16_t i = 0; i < 12; i++){
+      c = EEPROM.read(pos + i);
+      if(c != loadedFileName[i])
+        return false;
+      if(c == 0)
+        return true;
+    }
+  }
+  return true;
+}
+
+uint16_t findData(){
+  uint16_t pos;
+  uint8_t c;
+  pos = 0;
+  while(pos < EEPROM_SIZE){
+    c = EEPROM.read(pos);
+    if(c == 0 || c == 0xff)
+      return EEPROM_SIZE;
+    if(testDataName(pos + 1))
+      return pos;
+    pos += c;
+  }
+  return EEPROM_SIZE;
+}
+
+uint16_t findEndData(){
+  uint16_t pos;
+  uint8_t c;
+  pos = 0;
+  while(pos < EEPROM_SIZE){
+    c = EEPROM.read(pos);
+    if(c == 0 || c == 0xff)
+      return pos;
+    pos += c;
+  }
+  return EEPROM_SIZE;
+}
+
+uint16_t saveData(uint16_t arrayAddress, uint16_t count){
+  uint16_t i,pos;
+  uint8_t c;
+  if(count > 242)
+    count = 242;
+  pos = findData();
+  if(pos == EEPROM_SIZE)
+    pos = findEndData();
+  if((EEPROM_SIZE - pos) - 12 < count)
+    return (EEPROM_SIZE - pos) - 12;
+  c = EEPROM.read(pos);
+  if(c == 0 || c == 0xff){
+    EEPROM.write(pos, 12 + count);
+    for(i = 0; i < 12; i++)
+      EEPROM.write(pos + i + 1, readMem(dataName + i));
+  }
+  else if(c < count)
+    return c;
+  pos += 12;
+  for(i = 0; i < count; i++)
+    EEPROM.write(pos + i, readMem(arrayAddress + i));
+  EEPROM.commit();
+  return count;
+}
+
+uint16_t loadData(uint16_t arrayAddress){
+  uint16_t i,pos;
+  uint8_t c;
+  pos = findData();
+  if(pos == EEPROM_SIZE)
+    return 0;
+  c = EEPROM.read(pos) - 12;
+  pos += 12;
+  for(i = 0; i < c; i++)
+    writeMem(arrayAddress + i, EEPROM.read(pos + i));
+  return c;
+}
+
 #ifdef ESPBOY
 void setLedColor(uint16_t r5g6b5){
   uint8_t r,g,b;
@@ -200,10 +301,6 @@ void setLedColor(uint16_t r5g6b5){
   b = (((r5g6b5 & 0x1F) * 527) + 23) >> 6;
   leds[0] = CRGB( r, g, b);
   FastLED.show();
-  //pixels.setPixelColor(0, pixels.Color(30,0,0));
-  //pixels.setPixelColor(0, pixels.Color(r, g, b));
-  //pixels.show();
-  //delay(100);
 }
 #endif
 
@@ -426,6 +523,24 @@ void cpuStep(){
             reg2 = op2 & 0xf;
             addTone(reg[reg1], reg[reg2]);
             break;
+      case 0x57:
+        if (op2 < 0x10){
+          // LDATA R      57 0R
+          reg2 = op2 & 0xf;
+          reg[reg2] = loadData(reg[reg2]);
+        }
+        else if (op2 < 0x20){
+          // NDATA R      57 1R
+          reg2 = op2 & 0xf;
+          setDataName(reg[reg2]);
+        }
+        break;
+      case 0x58:
+        // SDATA R,R      58 RR
+        reg1 = (op2 & 0xf0) >> 4;
+        reg2 = op2 & 0xf;
+        reg[reg1] = saveData(reg[reg1], reg[reg2]);
+        break;
       }
       break;
     case 0x6:

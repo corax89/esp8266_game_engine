@@ -3,9 +3,6 @@
 LGE is a fantasy console for making, sharing and playing tiny games and other computer programs. 
 You can make you game or program using online compiler and run compiled binary on portable ESPboy console thouse feels like a regular console. Check few, colored, nostalgic LGE games from the package, by uploading them to SPIFFS.
 
-Original ESP-LGE:
-https://github.com/corax89/esp8266_game_engine
-
 Games sources:
 https://github.com/corax89/game_engine_for_esp8266_with_compiler/tree/master/example
 

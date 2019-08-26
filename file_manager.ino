@@ -11,6 +11,178 @@ static const uint8_t iconBin[] PROGMEM = {
   0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11
 };
 
+uint8_t drawDialog(){
+  char txt[] = "Press the leftbutton to delete this save.";
+  char b1[] = "Yes";
+  char b2[] = "No";
+  int16_t i,x,y;
+  setColor(1);
+  for(i = 30; i < 90; i++)
+    drwLine(20, i, 108, i);
+  setColor(8);
+  drwLine(20, 30, 108, 30);
+  drwLine(20, 90, 108, 90);
+  drwLine(20, 30, 20, 90);
+  drwLine(108, 30, 108, 90);
+  i = 0;
+  x = 24;
+  y = 32;
+  for(i = 0; i < 43; i++){
+    putchar(txt[i], x, y);
+    x += 6;
+    if(x > 102){
+      x = 24;
+      y += 8;
+    }
+  }
+  for(i = 0; i < 4; i++){
+    putchar(b1[i], 24 + i * 6, 80);
+  }
+  for(i = 0; i < 3; i++){
+    putchar(b2[i], 80 + i * 6, 80);
+  }
+  redrawScreen();
+  delay(400);
+  while(1){
+    thiskey = 0;
+    while(thiskey == 0){   
+      getKey();
+      delay(100);
+      changeSettings();
+      if(fileIsLoad)
+        return 0;
+    }
+    if(thiskey & 4){//left
+      return 1;
+    }
+    else
+      return 0;
+  }
+}
+
+void drawMenuBackground(){
+  int16_t i;
+  setColor(1);
+  for(i = 7; i < 121; i++)
+    drwLine(13, i, 115, i);
+  setColor(8);
+  drwLine(12, 6, 116, 6);
+  drwLine(12, 121, 116, 121);
+  drwLine(12, 6, 12, 121);
+  drwLine(116, 6, 116, 121);
+}
+
+void drawSave(uint8_t startPos, uint8_t selectPos){
+  uint16_t pos;
+  uint8_t c,i,n;
+  String s_buffer;
+  pos = 0;
+  n = 0;
+  while(pos < EEPROM_SIZE && (n - startPos < 14)){
+    if(n == selectPos)
+      setColor(2);
+    else
+      setColor(0);
+    c = EEPROM.read(pos);
+    if(c == 0 || c == 0xff)
+      return;
+    if(n >= startPos){
+      i = 0;
+      c = EEPROM.read(pos + 1);
+      while(i < 12 && c != 0){
+        putchar(c, 14 + i * 6, 8 + (n - startPos) * 8);
+        i++;
+        c = EEPROM.read(pos + 1 + i);
+      }
+      c = EEPROM.read(pos);
+      s_buffer = String(c);
+      for(i = 0; i < s_buffer.length(); i++){
+        putchar(s_buffer[i], 100 + i * 6, 8 + (n - startPos) * 8);
+      }
+    }
+    n++;
+    pos += c;
+  }
+}
+
+uint8_t getSaveLength(){
+  uint16_t pos = 0;
+  uint8_t n = 0;
+  uint8_t c;
+  while(pos < EEPROM_SIZE){
+    c = EEPROM.read(pos);
+    if(c == 0 || c == 0xff)
+      return n;
+    pos += c;
+    n++;
+  }
+  return n;
+}
+
+void deliteSave(uint8_t num, uint16_t end){
+  uint16_t i,pos = 0;
+  uint8_t n = 0;
+  uint8_t c;
+  while(pos < EEPROM_SIZE && n != num){
+    c = EEPROM.read(pos);
+    pos += c;
+    n++;
+  }
+  c = EEPROM.read(pos);
+  for(i = pos + c; i < end; i++){
+    EEPROM.write(i - c, EEPROM.read(i));
+    EEPROM.write(i, 0);
+  }
+  EEPROM.commit();
+}
+
+void saveManager(){
+  uint8_t pos,listLength;
+  drawMenuBackground();
+  drawSave(0,0);
+  redrawScreen();
+  pos = 0;
+  listLength = getSaveLength();
+  delay(400);
+  while(1){
+    thiskey = 0;
+    while(thiskey == 0){   
+      getKey();
+      delay(100);
+      changeSettings();
+      if(fileIsLoad)
+        return;
+    }
+    if(thiskey & 128){
+      return;
+    }
+    else if(thiskey & 2){//down
+      if(pos < listLength - 1){
+        pos++;
+        drawMenuBackground();
+        drawSave(pos,pos);
+        redrawScreen();
+      }
+    }
+    else if(thiskey & 1){//up
+      if(pos > 0){
+        pos--;
+        drawMenuBackground();
+        drawSave(pos,pos);
+        redrawScreen();
+      }
+    }
+    else if(thiskey & 16){//ok
+      if(drawDialog()){
+        deliteSave(pos, findEndData());
+      }
+      drawMenuBackground();
+      drawSave(pos,pos);
+      redrawScreen();
+    }
+  }
+}
+
 void fileList(String path) {
   fs::Dir dir = SPIFFS.openDir(path);
   char s[32];
@@ -33,6 +205,7 @@ void fileList(String path) {
   Serial.print(fileCount);
   Serial.println(F(" files"));
   while(1){
+    clearScr(0);
     skip = startpos;
     lst = 1;
     dir = SPIFFS.openDir(path);
@@ -83,8 +256,7 @@ void fileList(String path) {
     else if(startpos > pos){
       startpos = pos;
     }
-    redrawScreen();
-    clearScr(0);  
+    redrawScreen();  
     getKey();
     delay(200);
     while(thiskey == 0){   
@@ -100,6 +272,7 @@ void fileList(String path) {
       while(i < 28 && thisF[i] != '.')
         i++;
       i++;
+      setLoadedFileName(thisF);
       if(thisF[i] == 'b' && thisF[i + 1] == 'i' && thisF[i + 2] == 'n')
         loadBinFromSPIFS(thisF);
       else if(thisF[i] == 'l' && thisF[i + 1] == 'g' && thisF[i + 2] == 'e')
@@ -117,6 +290,10 @@ void fileList(String path) {
         pos--;
       if(pos - startpos < 0)
         startpos--;
+    }
+    if(thiskey & 128){//select
+      saveManager();
+      delay(400);
     }
     if(thiskey & 4){//left
       cpuInit();
