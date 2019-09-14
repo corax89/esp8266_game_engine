@@ -249,8 +249,16 @@ void pause(){
       delay(800);
       return;
     }
-    if(thiskey & 16)
-      ESP.reset();
+    if(thiskey & 16){
+      clearSpriteScr();
+      while(thiskey & 16){
+        delay(100);
+        getKey();
+      }
+      thiskey = 0;
+      fileList("/");
+      return;
+    }
     prevKey = thiskey;
   }
 }

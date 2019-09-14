@@ -138,8 +138,6 @@ inline void writeInt(uint16_t adr, int16_t n){
   nPtr++;
   adr++;
   writeMem(adr, *nPtr);
-  //writeMem(adr + 1, (n & 0xff00) >> 8);
-  //writeMem(adr, n & 0xff);
 }
 
 inline int16_t readInt(uint16_t adr){
@@ -151,7 +149,6 @@ inline int16_t readInt(uint16_t adr){
   adr++;
   *nPtr = readMem(adr);
   return n;
-  //return (readMem(adr + 1) << 8) + readMem(adr);
 }
 
 inline void writeMem(uint16_t adr, int16_t n){
@@ -472,7 +469,6 @@ void cpuStep(){
       switch(op1){ 
         case 0x50:
           //HLT       5000
-          //pc -= 2;
           fileList("/");
           break;
         case 0x51:
@@ -831,7 +827,7 @@ void cpuStep(){
         case 0xAD:
           reg1 = op2 & 0xf;
           reg2 = op2 & 0xf0;
-          // RAND R,R   AD 0R
+          // RAND R   AD 0R
           if(reg2 == 0x00){
             n = random(0, reg[reg1] + 1);
             n = setFlags(n);
@@ -1046,7 +1042,7 @@ void cpuStep(){
                 drwLine(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
                 break;
               case 0x070:
-                // // DRWRLE R   D47R
+                // DRWRLE R   D47R
                 reg1 = op2 & 0xf;
                 adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно h, w, y, x, адрес
                 drawImgRLE(readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
@@ -1058,7 +1054,7 @@ void cpuStep(){
                 loadTile(readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
                 break;
               case 0x90:
-                // SPRSDS R*2 D4 9R
+                // SPRSDS R D4 9R
                 reg1 = op2 & 0xf;
                 adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно direction, speed, n
                 spriteSetDirectionAndSpeed(readInt(adr + 4), readInt(adr + 2), readInt(adr));
@@ -1079,8 +1075,8 @@ void cpuStep(){
           break;
         case 0xD6:
           // SPALET R,R   D6 RR
-          reg1 = (op2 & 0xf0) >> 4;//номер спрайта
-          reg2 = op2 & 0xf;//width
+          reg1 = (op2 & 0xf0) >> 4;//номер палитры
+          reg2 = op2 & 0xf;//цвет
           changePalette(reg[reg1] & 15, reg[reg2]);
           break;
         case 0xD7:
@@ -1117,12 +1113,6 @@ void cpuStep(){
           reg1 = (op2 & 0xf0) >> 4;//x
           reg2 = op2 & 0xf;//y
           drawTile(reg[reg1], reg[reg2]);
-          break;
-        case 0xDB:
-          // SPRSPX R,R   DB RR
-          reg1 = (op2 & 0xf0) >> 4;//num
-          reg2 = op2 & 0xf;//speed y
-
           break;
         case 0xDC:
           // SPRGTX R,X   DC RX

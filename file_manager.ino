@@ -257,8 +257,8 @@ void fileList(String path) {
       startpos = pos;
     }
     redrawScreen();  
-    getKey();
     delay(200);
+    getKey();
     while(thiskey == 0){   
       getKey();
       delay(100);
@@ -273,6 +273,8 @@ void fileList(String path) {
         i++;
       i++;
       setLoadedFileName(thisF);
+      for(int16_t i = 0; i < RAM_SIZE; i++)
+        mem[i] = 0;
       if(thisF[i] == 'b' && thisF[i + 1] == 'i' && thisF[i + 2] == 'n')
         loadBinFromSPIFS(thisF);
       else if(thisF[i] == 'l' && thisF[i + 1] == 'g' && thisF[i + 2] == 'e')
