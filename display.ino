@@ -1466,6 +1466,10 @@ void setColor(uint8_t c){
   color = c & 0xf;
 }
 
+void setBgColor(uint8_t c){
+  bgcolor = c & 0xf;
+}
+
 void fillRect(int8_t x, int8_t y, uint8_t w, uint8_t h, uint8_t c){
    for(int16_t jx = x; jx < x + w; jx++)
      for(int16_t jy = y; jy < y + h; jy++)

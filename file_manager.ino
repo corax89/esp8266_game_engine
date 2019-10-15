@@ -193,6 +193,15 @@ void fileList(String path) {
   int16_t fileCount = 0;
   int16_t skip = 0;
   uint8_t i,b;
+  display_init();
+  setBgColor(0);
+  setColor(1);
+  tft.fillScreen(0x0000);
+ #ifdef ESPBOY
+  leds[0] = CRGB::Black;
+  FastLED.show();
+  FastLED.show();
+ #endif
   for(i = 0; i < 192; i++)
     mem[i + 1024 + 192] = pgm_read_byte_near(iconBin + i);
   setImageSize(1);
@@ -204,6 +213,20 @@ void fileList(String path) {
   Serial.print(F("find "));
   Serial.print(fileCount);
   Serial.println(F(" files"));
+  if(fileCount == 0){
+    delay(200);
+    getKey();
+    while(thiskey == 0){  
+      clearScr(0);
+      putString("No files. Please upload files.", 2);
+      getKey();
+      delay(100);
+      changeSettings();
+      if(fileIsLoad)
+        return;
+    }
+    return;
+  }
   while(1){
     clearScr(0);
     skip = startpos;

@@ -52,12 +52,12 @@ void getKey(){
   if((dio_in & 16) == 0)
     thiskey |= 1; //up
   if((dio_in & 8) == 0)
-    thiskey |= 64;
+    thiskey |= 128;
   if((dio_in & 4) == 0)
     thiskey |= 32;
   if((dio_in & 2) == 0)
     thiskey |= 16; 
   if((dio_in & 1) == 0)
-    thiskey |= 128; 
+    thiskey |= 64; 
 }
 #endif
