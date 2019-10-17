@@ -1,6 +1,8 @@
 #define ESPBOY 1
-#define RAM_SIZE 20 * 1024
+#define RAM_SIZE 18 * 1024
 #define FREQUENCY    160    // valid 80, 160
+#define APSSID "ESPboy"
+#define APPSK  "87654321"
 
 #ifdef ESPBOY
   #define MCP23017address 0
@@ -8,6 +10,9 @@
   #define LEDquantity     1
   #define LEDPIN         D4
   #define SOUNDPIN       D3
+#else
+  #define SOUNDPIN       -1
+  #define DEBUG_ON_SCREEN 1
 #endif
 
 #define SCREEN_WIDTH 128
@@ -31,5 +36,5 @@
 #define SCREEN_ADDR(x, y) ((int(y) << 6) + int(x))
 #endif
 
-#define PARTICLE_COUNT 32
+#define PARTICLE_COUNT 24
 #define EEPROM_SIZE   512

@@ -7,6 +7,7 @@
 #include <TFT_eSPI.h>
 #include <EEPROM.h>
 
+
 #include "settings.h"
 #ifdef ESPBOY
   #include "ESPboyLogo.h"
@@ -31,7 +32,6 @@ extern "C" {
   #include "user_interface.h"
 }
 // ------------------end ESP8266'centric------------------------------------
-int voltaje=0;
 uint8_t i2c_adress;
 uint8_t thiskey;
 char c;
@@ -234,7 +234,7 @@ void coos_rtttl(void){
 void coos_info(void){   
   while(1){
     COOS_DELAY(1000);        // 1000 ms
-    voltaje = ESP.getVcc();
+   #ifdef DEBUG_ON_SCREEN
     if(getDisplayXOffset() > 30){
       tft.fillRect(0, 0, 30, 92, 0x0000);
       tft.setCursor(1, 0);
@@ -249,6 +249,7 @@ void coos_info(void){
       tft.println("kIPS");
       tft.println(cpuOPS, DEC);
     }
+   #endif
     timeCpu = 0;
     timeGpu = 0;
     timeSpr = 0;
@@ -259,7 +260,6 @@ void coos_info(void){
 void setup() {
   byte menuSelected = 3;
   // ------------------begin ESP8266'centric----------------------------------
-  WiFi.forceSleepBegin();                  // turn off ESP8266 RF
   delay(1);                                // give RF section time to shutdown
   system_update_cpu_freq(FREQUENCY);
   // ------------------end ESP8266'centric------------------------------------
@@ -313,10 +313,6 @@ void setup() {
   tft.fillScreen(0x0000);
   tft.setTextSize(1);
   tft.setTextColor(0xffff);
-  cpuInit();
-  FlashMode_t ideMode = ESP.getFlashChipMode();
-  Serial.printf("Flash ide speed: %u Hz\n", ESP.getFlashChipSpeed());
-  Serial.printf("Flash ide mode:  %s\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
   //Initialize File System
   if(SPIFFS.begin()){
     Serial.println(F("SPIFFS Initialize....ok"));
@@ -328,8 +324,30 @@ void setup() {
   Serial.println(ESP.getFreeHeap());
   Serial.println(F("print \"vW H\" for change viewport, \"d name\" for delite file,"));
   Serial.println(F("\"s name\" for save file and \"m\" for load to memory"));
-  voltaje = ESP.getVcc();
   randomSeed(ESP.getVcc());
+  getKey();
+  //go to web file manager
+  if(thiskey & 32){//key B
+    serverSetup();
+    tft.setCursor(0,10);
+    tft.print(F("SSID "));
+    tft.print(F(APSSID));
+    tft.print(F("\nPassword "));
+    tft.print(F(APPSK));
+    tft.print(F("\nGo to \nhttp://192.168.4.1"));
+    tft.print(F("\nin a web browser"));
+    while(1){
+      serverLoop();
+      if(Serial.read() == 'r')
+        ESP.reset();
+      delay(1);
+    }
+  }
+  else{
+    WiFi.forceSleepBegin();                  // turn off ESP8266 RF
+    delay(1);
+  }
+  cpuInit();
   clearScr(0);
   setColor(1);
   randomSeed(analogRead(0));

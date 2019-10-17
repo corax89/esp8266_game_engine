@@ -12,7 +12,7 @@ static const uint8_t iconBin[] PROGMEM = {
 };
 
 uint8_t drawDialog(){
-  char txt[] = "Press the leftbutton to delete this save.";
+  char txt[] = "Press leftbutton to delete this save.";
   char b1[] = "Yes";
   char b2[] = "No";
   int16_t i,x,y;
@@ -219,6 +219,7 @@ void fileList(String path) {
     while(thiskey == 0){  
       clearScr(0);
       putString("No files. Please upload files.", 2);
+      redrawScreen();
       getKey();
       delay(100);
       changeSettings();
@@ -319,10 +320,6 @@ void fileList(String path) {
     if(thiskey & 128){//select
       saveManager();
       delay(400);
-    }
-    if(thiskey & 4){//left
-      cpuInit();
-      return;
     }
   }
 }
