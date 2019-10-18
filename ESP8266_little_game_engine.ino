@@ -305,11 +305,6 @@ void setup() {
   tft.init();            // initialize LCD
   tft.setRotation(1);
  #endif
- #ifdef ESPBOY
-  setScreenResolution(128, 128);
- #else
-  setScreenResolution(239, 239);
- #endif
   tft.fillScreen(0x0000);
   tft.setTextSize(1);
   tft.setTextColor(0xffff);
@@ -320,10 +315,6 @@ void setup() {
   else{
     Serial.println(F("SPIFFS Initialization...failed"));
   }
-  Serial.print(F("FreeHeap:"));
-  Serial.println(ESP.getFreeHeap());
-  Serial.println(F("print \"vW H\" for change viewport, \"d name\" for delite file,"));
-  Serial.println(F("\"s name\" for save file and \"m\" for load to memory"));
   randomSeed(ESP.getVcc());
   getKey();
   //go to web file manager
@@ -336,18 +327,30 @@ void setup() {
     tft.print(F(APPSK));
     tft.print(F("\nGo to \nhttp://192.168.4.1"));
     tft.print(F("\nin a web browser"));
+    tft.print(F("\nPress button A to\nreboot"));
     while(1){
       serverLoop();
-      if(Serial.read() == 'r')
+      getKey();
+      if(Serial.read() == 'r' || thiskey & 16)
         ESP.reset();
-      delay(1);
+      delay(100);
     }
   }
   else{
     WiFi.forceSleepBegin();                  // turn off ESP8266 RF
     delay(1);
   }
+  memoryAlloc();
   cpuInit();
+  Serial.print(F("FreeHeap:"));
+  Serial.println(ESP.getFreeHeap());
+  Serial.println(F("print \"vW H\" for change viewport, \"d name\" for delite file,"));
+  Serial.println(F("\"s name\" for save file and \"m\" for load to memory"));
+ #ifdef ESPBOY
+  setScreenResolution(128, 128);
+ #else
+  setScreenResolution(239, 239);
+ #endif
   clearScr(0);
   setColor(1);
   randomSeed(analogRead(0));

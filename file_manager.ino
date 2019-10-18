@@ -350,8 +350,8 @@ void loadLgeFromSPIFS(char fileName[]){
   else
     return;
   n = (uint8_t)f.read();
-  Serial.print(F("offset "));
-  Serial.print(n);
+  //Serial.print(F("offset "));
+  //Serial.print(n);
   f.seek(n, SeekSet);
   n = 0;
   while(f.available()){

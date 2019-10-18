@@ -23,19 +23,21 @@ button:active{box-shadow:0 1px 3px 0 rgba(0,0,0,0.44),0 1px 1px 0 rgba(0,0,0,0.6
 button:focus::before{display:block;height:150px;width:150px;top:-58px;left:-30px;opacity:0;content:"";background:#AAA;border-radius:1000px;position:absolute;animation-name:fade;animation-timing-function:ease-out;animation-duration:1s;z-index:-2;}@keyframes fade{0%{opacity:1;transform:scale(0);}
 50%{opacity:1;transform:scale(1);}
 100%{opacity:0;}}
-li{font-size:1.5rem;text-align:left;height:40px;padding-top:16px;padding-left:16px;display:block;border-bottom:1px solid rgba(0,0,0,.12);}.container{position:relative;max-width:40rem;margin:5rem auto;background:#fff;width:100%;}.container::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;box-shadow:0 8px 10px 1px rgba(0,0,0,0.14),0 3px 14px 2px rgba(0,0,0,0.12),0 5px 5px-3px rgba(0,0,0,0.2);}.close{position:absolute;right:1em;width:1em;height:1em;opacity:0.7;}.close:hover{opacity:1;}.close:before,.close:after{position:absolute;left:15px;content:' ';height:33px;width:2px;background-color:#333;}.close:before{transform:rotate(45deg);}.close:after{transform:rotate(-45deg);}#uploader{padding-left:10px;background-color:#00A;color:#FFF;background-image:linear-gradient(to right,#0060b3 50%,#999 100%)}#i{position:fixed;bottom:1em;left:-100%;width:90%;margin-left:2%;background:#33691e;font-size:2em;color:white;padding:0.5em;text-align:center;border-radius:5px;-webkit-transition:0.2s ease-out;transition:0.2s ease-out;box-shadow:0 1px 6px 0 rgba(0,0,0,0.44),0 3px 8px 0 rgba(0,0,0,0.68);}</style><script>var treeRoot;function createFileUploader(b){var d;var f=document.getElementById('u_h');var c=document.createElement('button');c.innerHTML='Upload';document.getElementById(b).appendChild(c);function h(){if(d.readyState==4){if(d.status!=200){alert('ERROR['+d.status+']: '+d.responseText)}else{setTimeout(function(){ok();httpGet(treeRoot,'/');},500);}}}
+li{font-size:1.5rem;text-align:left;height:40px;padding-top:16px;padding-left:16px;display:block;border-bottom:1px solid rgba(0,0,0,.12);}.container{position:relative;max-width:40rem;margin:5rem auto;background:#fff;width:100%;}.container::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;box-shadow:0 8px 10px 1px rgba(0,0,0,0.14),0 3px 14px 2px rgba(0,0,0,0.12),0 5px 5px-3px rgba(0,0,0,0.2);}#p-bar{height:2em;line-height:2em;width:200px;position:relative;text-align:center;color:black;}#p-bar span{position:absolute;top:0;left:0;width:100%;background-color:rgba(200,200,200,0.6);}#p-bar span:last-child{background-color:rgba(0,200,0,0.6);color:white;clip:rect(0 0px 2em 0);}.sz{position:absolute;right:5em;font-size:70%;margin:0.4em;}.close{position:absolute;right:1em;width:1em;height:1em;opacity:0.7;}.close:hover{opacity:1;}.close:before,.close:after{position:absolute;left:15px;content:' ';height:33px;width:2px;background-color:#333;}.close:before{transform:rotate(45deg);}.close:after{transform:rotate(-45deg);}#uploader{padding-left:10px;background-color:#00A;color:#FFF;background-image:linear-gradient(to right,#0060b3 50%,#999 100%)}#i{position:fixed;bottom:1em;left:-150%;width:90%;margin-left:2%;background:#33691e;opacity:0.9;font-size:2em;color:white;padding:0.5em;text-align:center;border-radius:5px;-webkit-transition:0.3s ease-out;transition:0.2s ease-out;box-shadow:0 1px 6px 0 rgba(0,0,0,0.44),0 3px 8px 0 rgba(0,0,0,0.68);}.m-l:before,.m-l:after,.m-l{border-radius:40%;width:2.5rem;height:2.5rem;animation-fill-mode:both;animation:m-l 1.8s infinite ease-in-out;}.m-l{font-size:0.1rem;margin:6rem auto 8.5rem auto;position:relative;transform:translateZ(0);animation-delay:-0.6s;}.m-l:before{left:-4rem;animation-delay:-1.2s;}.m-l:after{left:4rem;}.m-l:before,.m-l:after{content:'';position:absolute;top:0;}@keyframes m-l{0%,80%,100%{box-shadow:0 2.5rem 0-1.3em white;}
+40%{box-shadow:0 2.5rem 0 0 white;}}#loader{width:100%;height:100%;position:fixed;top:0;left:0;background:rgba(0,0,0,0.4);display:none;}</style><script>var treeRoot;function createFileUploader(b){var d;var f=document.getElementById('u_h');var c=document.getElementById('b_u');function h(){if(d.readyState==4){document.getElementById('loader').style.display='none';if(d.status!=200){alert('ERROR['+d.status+']: '+d.responseText)}else{setTimeout(function(){ok();httpGet(treeRoot,'/');},300);}}}
 c.onclick=function(k){if(f.files.length===0){return}
-d=new XMLHttpRequest();d.onreadystatechange=h;var j=new FormData();j.append('data',f.files[0],f.value.replace(/^.*[\\\/]/,''));d.open('POST','/e');d.send(j);};}
-function del(n){if(confirm("Delite "+n+"?")){xmlHttp=new XMLHttpRequest();xmlHttp.onreadystatechange=setTimeout(function(){ok();httpGet(treeRoot,'/');},500);var formData=new FormData();formData.append("path",'/'+n);xmlHttp.open("DELETE","/e");xmlHttp.send(formData);}}
-function addList(d,g,a){var c='<ul>';for(var b=1;b<a.length;b++){if(a[b].length>0);c+='<li>'+a[b]+'<i class=\u0022close\u0022 onClick=\u0022del(\u0027'+a[b]+'\u0027)\u0022></i></li>';}
+document.getElementById('loader').style.display='block';d=new XMLHttpRequest();d.onreadystatechange=h;var j=new FormData();j.append('data',f.files[0],f.value.replace(/^.*[\\\/]/,''));d.open('POST','/e');d.send(j);};}
+function del(n){if(confirm("Delite "+n+"?")){xmlHttp=new XMLHttpRequest();xmlHttp.onreadystatechange=setTimeout(function(){ok();httpGet(treeRoot,'/');},300);var formData=new FormData();formData.append("path",'/'+n);xmlHttp.open("DELETE","/e");xmlHttp.send(formData);}}
+function addList(d,g,a){var c='<ul>';viewSize(a[0]);for(var b=1;b<a.length;b++){var f=a[b].split(':');if(f[0].length>0);c+='<li>'+f[0]+'<b class=\u0022sz\u0022>'+(Math.floor(f[1]/102.4)/10)+'KB</b><i class=\u0022close\u0022 onClick=\u0022del(\u0027'+f[0]+'\u0027)\u0022></i></li>';}
 c+='</ul>';d.innerHTML=c}
 function getCb(a,b){return function(){if(xmlHttp.readyState==4){console.log(xmlHttp.responseText);if(xmlHttp.status==200){addList(a,b,xmlHttp.responseText.split('/'));}}}}
 function httpGet(a,b){if(b!='/'){a.onclick=function(){}}
 xmlHttp=new XMLHttpRequest(a,b);xmlHttp.onreadystatechange=getCb(a,b);xmlHttp.open('GET','/l',true);xmlHttp.send(null)}
-function onBodyLoad(){createFileUploader('uploader');treeRoot=document.getElementById('tree');httpGet(treeRoot,'/');};function ok(){var i=document.getElementById('i');i.style.left="0";setTimeout(function(){document.getElementById('i').style.left="-100%";},3000);}</script></head><body onload='onBodyLoad()'><div class='container'><div id='uploader'><input type="file"id="u_h"
+function onBodyLoad(){createFileUploader('uploader');treeRoot=document.getElementById('tree');httpGet(treeRoot,'/');};function ok(){var i=document.getElementById('i');i.style.left="0";setTimeout(function(){document.getElementById('i').style.left="-150%";},3000);}
+function viewSize(s){var s=s.split(':');var p=Math.floor(s[0]/s[1]*100);document.getElementById('pr1').innerHTML=Math.floor(s[0]/1024)+'KB/'+Math.floor(s[1]/1024)+'KB';document.getElementById('pr2').innerHTML=Math.floor(s[0]/1024)+'KB/'+Math.floor(s[1]/1024)+'KB';document.getElementById('pr2').style.clip="rect(0 "+p*2+"px 2em 0)";}</script></head><body onload='onBodyLoad()'><div class='container'><div id='uploader'><input type="file"id="u_h"
 style="position: absolute; display: block; overflow: hidden; width: 0; height: 0; border: 0; padding: 0;"
 onchange="document.getElementById('u_v').value = this.value.replace(/^.*[\\\/]/, '');"/><input type="text"readonly="1"id="u_v"
-onclick="document.getElementById('u_h').click();"/><button onclick="document.getElementById('u_h').click();">Browse</button></div><div id='tree'style='top:1em'></div></div><div id="i">The operation was successful</div></body></html>
+onclick="document.getElementById('u_h').click();"/><button onclick="document.getElementById('u_h').click();">Browse</button><button id="b_u">Upload</button><button id="p-bar"><span id="pr1">0/0</span><span id="pr2">0/0</span></button></div><div id='tree'style='top:1em'></div></div><div id="i">The operation was successful</div><div id="loader"><div class="m-l"></div></div></body></html>
 )=====";
 
 
@@ -43,9 +45,16 @@ void handleFileList() {
   Dir dir = SPIFFS.openDir("/");
 
   String output = "";
+  FSInfo fs_info;
+  SPIFFS.info(fs_info);
+  output += fs_info.usedBytes;
+  output += ':';
+  output += fs_info.totalBytes;
   while (dir.next()) {
     File entry = dir.openFile("r");
     output += String(entry.name());
+    output += ':';
+    output += String(entry.size());
     entry.close();
   }
   

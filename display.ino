@@ -125,8 +125,8 @@ static const uint8_t pauseImage[] PROGMEM = {
   0x42,0x40,0x88,0xd9,0x82,0x40,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xee,0xa1,0x59,0xb7,0x8a,0xc1,0x92,0x22,0xca,
   0x81,0x19,0x32,0x8a,0x81,0x10,0xa2,0x8e,0x81,0x1b,0x32,0x0,0x0,0x0,0x0
 };
-uint8_t screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
-uint8_t sprite_screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
+uint8_t *screen;//screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
+uint8_t *sprite_screen;//[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
 uint8_t line_is_draw[128] __attribute__ ((aligned));
 char charArray[340];
 uint16_t pix_buffer[SCREEN_REAL_WIDTH] __attribute__ ((aligned));
@@ -145,6 +145,15 @@ int8_t keyboardPos = 0;
 
 #pragma GCC optimize ("-O2")
 #pragma GCC push_options
+
+void memoryAlloc(){
+  screen = (uint8_t*)malloc(SCREEN_ARRAY_DEF * sizeof(uint8_t));
+  if(screen == NULL)
+    Serial.println(F("Out of memory"));
+  sprite_screen = (uint8_t*)malloc(SCREEN_ARRAY_DEF * sizeof(uint8_t));
+  if(sprite_screen == NULL)
+    Serial.println(F("Out of memory"));
+}
 
 int16_t getCos(int16_t g){
   g = g % 360;
