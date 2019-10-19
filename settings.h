@@ -1,16 +1,19 @@
 #define ESPBOY
 #define RAM_SIZE 20 * 1024
 #define FREQUENCY    160    // valid 80, 160
-#define APSSID "ESPboy"
 #define APPSK  "87654321"
 
 #ifdef ESPBOY
+  #define APSSID "ESPboy"
+  #define APHOST "espboy"
   #define MCP23017address 0
   #define csTFTMCP23017pin 8
   #define LEDquantity     1
   #define LEDPIN         D4
   #define SOUNDPIN       D3
 #else
+  #define APSSID "ESPlge"
+  #define APHOST "esplge"
   #define SOUNDPIN       -1
   #define DEBUG_ON_SCREEN
 #endif
