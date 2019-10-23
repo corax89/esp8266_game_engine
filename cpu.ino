@@ -469,6 +469,7 @@ void cpuStep(){
       switch(op1){ 
         case 0x50:
           //HLT       5000
+          clearSpriteScr();
           fileList("/");
           break;
         case 0x51:
