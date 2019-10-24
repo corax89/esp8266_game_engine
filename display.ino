@@ -291,7 +291,7 @@ void drawPause(){
     }
 }
 
-int8_t randomD(int8_t a, int8_t b) {
+inline int8_t randomD(int8_t a, int8_t b) {
   int8_t minv = a < b ? a : b;
   int8_t maxv = a > b ? a : b;
   return random(minv, maxv + 1);
@@ -476,7 +476,7 @@ int8_t getSpriteInXY(int16_t x, int16_t y){
   return - 1;
 }
 
-void moveSprites(){
+inline void moveSprites(){
   for(uint8_t i = 0; i < 32; i++){
     if(sprite_table[i].lives > 0){   
       sprite_table[i].speedy += sprite_table[i].gravity;
@@ -486,7 +486,7 @@ void moveSprites(){
   }
 }
 
-void redrawSprites(){
+inline void redrawSprites(){
   for(uint8_t i = 0; i < 32; i++){
     if(sprite_table[i].lives > 0){
       if((sprite_table[i].x >> 2) + sprite_table[i].width < 0 || (sprite_table[i].x >> 2) > 127 
@@ -627,7 +627,7 @@ void testSpriteCollision(){
   }
 }
 
-void clearSpriteScr(){
+inline void clearSpriteScr(){
   for(byte y = 0; y < 128; y ++)
     for(byte x = 0; x < 64; x += 4){
       if(*((uint32_t*)&sprite_screen[SCREEN_ADDR(x,y)]) > 0)
@@ -636,7 +636,7 @@ void clearSpriteScr(){
   memset(sprite_screen, 0, SCREEN_SIZE);
 }
 
-void clearScr(uint8_t color){
+inline void clearScr(uint8_t color){
   for(byte y = 0; y < 128; y ++){
     for(byte x = 0; x < 128; x++)
       setPix(x, y, color);
@@ -778,7 +778,7 @@ void setSpriteValue(int8_t n, uint8_t t, int16_t v){
  }
 }
 
-void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
+inline void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
   int16_t nx = hw + (((x - hw) * c - (y - hh) * s) >> 6);
   int16_t ny = hh + (((y - hh) * c + (x - hw) * s) >> 6);
   int16_t nnx = nx / 2;
@@ -1155,12 +1155,12 @@ void drawTile(int16_t x0, int16_t y0){
     }
   }
 
-void drawFVLine(int16_t x, int16_t y1, int16_t y2){
+inline void drawFVLine(int16_t x, int16_t y1, int16_t y2){
   for(int16_t  i = y1; i <= y2; i++)
     setPix(x, i, color);
 }
 
-void drawFHLine(int16_t x1, int16_t x2, int16_t y){
+inline void drawFHLine(int16_t x1, int16_t x2, int16_t y){
   for(int16_t  i = x1; i <= x2; i++)
     setPix(i, y, color);
 }

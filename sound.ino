@@ -30,7 +30,7 @@ struct PLAY_TONE {
 struct RTTTL rtttl;
 struct PLAY_TONE play_tone;
 
-void addTone(uint16_t f, uint16_t t){
+inline void addTone(uint16_t f, uint16_t t){
   play_tone.freq = f;
   play_tone.time = t;
 }
@@ -205,5 +205,3 @@ int16_t playRtttl(){
   }
   return duration;
 }
-
-

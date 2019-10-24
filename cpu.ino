@@ -27,13 +27,13 @@ struct Fifo_t {
 
 struct Fifo_t interruptFifo;
 
-void fifoClear(){
+inline void fifoClear(){
   interruptFifo.position_read = 0;
   interruptFifo.position_write = 0;
   interruptFifo.size = 0;
 }
 
-void pushInFifo(int16_t n){
+inline void pushInFifo(int16_t n){
   if(interruptFifo.size < FIFO_MAX_SIZE){
     interruptFifo.el[interruptFifo.position_write] = n;
     interruptFifo.position_write++;
@@ -43,7 +43,7 @@ void pushInFifo(int16_t n){
   }
 }
 
-uint16_t popOutFifo(){
+inline uint16_t popOutFifo(){
   uint16_t out = 0;
   if(interruptFifo.size > 0){
     interruptFifo.size--;
@@ -55,17 +55,17 @@ uint16_t popOutFifo(){
   return out;
 }
 
-int16_t flagsToByte(){
+inline int16_t flagsToByte(){
   return (carry & 0x1) + ((zero & 0x1) << 1)  + ((negative & 0x1) << 2);
 }
   
-void byteToFlags(int16_t b){
+inline void byteToFlags(int16_t b){
   carry = b & 0x1;
   zero = (b & 0x2) >> 1;
   negative = (b & 0x4) >> 2;
 }
 
-void setinterrupt(uint16_t adr, int16_t param){
+inline void setinterrupt(uint16_t adr, int16_t param){
   if(interrupt == 0 && adr != 0){
     shadow_reg[0] = flagsToByte();
     for(int8_t j = 1; j <= 15; j++){
@@ -160,7 +160,7 @@ inline uint8_t readMem(uint16_t adr){
   return (adr < RAM_SIZE) ? mem[adr] : 0;
 }
 
-void setRedraw(){
+inline void setRedraw(){
   redraw = 1;
 }
 
@@ -301,7 +301,7 @@ void setLedColor(uint16_t r5g6b5){
 }
 #endif
 
-void cpuRun(uint16_t n){
+inline void cpuRun(uint16_t n){
   for(uint16_t i=0; i < n; i++)
     cpuStep();
 }

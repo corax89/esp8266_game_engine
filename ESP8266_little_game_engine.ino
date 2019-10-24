@@ -2,11 +2,10 @@
 #include <Ticker.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <coos.h>
 #include <FS.h>
 #include <TFT_eSPI.h>
 #include <EEPROM.h>
-
+#include "acoos.h"
 
 #include "settings.h"
 #ifdef ESPBOY
@@ -16,6 +15,8 @@
 #endif
 
 ADC_MODE(ADC_VCC);
+
+Coos <5, 0> coos;
 
 // Use hardware SPI
 TFT_eSPI tft = TFT_eSPI();
@@ -289,7 +290,7 @@ void changeSettings(){
 
 void coos_cpu(void){   
   while(1){
-    COOS_DELAY(1);        // 1 ms
+    COOS_DELAY(0);        // 1 ms
     timeR = millis();
     cpuOPS += 1;
     cpuRun(1100);  
@@ -334,6 +335,7 @@ void coos_key(void){
     getKey();
     if(thiskey & 128)
       pause();
+    changeSettings();
   }
 }
 
@@ -484,5 +486,4 @@ void setup() {
 
 void loop() {
   coos.run();  // Coos scheduler
-  changeSettings();
 }
