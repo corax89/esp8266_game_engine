@@ -11,10 +11,9 @@
 #ifdef ESPBOY
   #include "ESPboyLogo.h"
   #include <Adafruit_MCP23017.h>
+  #include <Adafruit_MCP4725.h>
   #include <FastLED.h>
 #endif
-
-ADC_MODE(ADC_VCC);
 
 Coos <5, 0> coos;
 
@@ -23,7 +22,7 @@ TFT_eSPI tft = TFT_eSPI();
 
 #ifdef ESPBOY
 Adafruit_MCP23017 mcp;
-//Adafruit_NeoPixel pixels(LEDquantity, LEDPIN, NEO_GRB + NEO_KHZ800);
+Adafruit_MCP4725 dac;
 CRGB leds[1];
 #endif
 
@@ -379,7 +378,6 @@ void coos_info(void){
 }
 
 void setup() {
-  byte menuSelected = 3;
   // ------------------begin ESP8266'centric----------------------------------
   delay(1);                                // give RF section time to shutdown
   system_update_cpu_freq(FREQUENCY);
@@ -387,12 +385,18 @@ void setup() {
   Serial.begin (115200);
   EEPROM.begin(EEPROM_SIZE);
  #ifdef ESPBOY
+  Wire.begin();
   Serial.println();
   Serial.println(F("ESPboy"));
+  scani2c();
+  //DAC init
+  dac.begin(MCP4725address);
+  delay(100);
+  dac.setVoltage(0, true);
   //buttons on mcp23017 init
   mcp.begin(MCP23017address);
   delay (100);
-  for (int i=0;i<8;i++){  
+  for(int i = 0; i < 8; i++){
      mcp.pinMode(i, INPUT);
      mcp.pullUp(i, HIGH);
   }
@@ -401,10 +405,10 @@ void setup() {
   FastLED.show();
   FastLED.show();
   delay(50);
-  //TFT init 
+  //initialize LCD
   mcp.pinMode(csTFTMCP23017pin, OUTPUT);
   mcp.digitalWrite(csTFTMCP23017pin, LOW);
-  tft.init();            // initialize LCD
+  tft.init();            
   tft.setRotation(0);
   tft.fillScreen(0x0000);
   tft.setTextSize(1); 
@@ -419,7 +423,13 @@ void setup() {
   tone(SOUNDPIN, 100, 100);
   delay(100);
   noTone(SOUNDPIN);
-  delay (2000);
+  //LCD backlit on
+  for (int count = 0; count < 1000; count += 50){
+    dac.setVoltage(count, false);
+    delay(50);
+  }
+  dac.setVoltage(4095, true);
+  delay(1000);
  #else
   Wire.begin(D2, D1);
   geti2cAdress();
@@ -458,7 +468,8 @@ void setup() {
     }
   }
   else{
-    WiFi.forceSleepBegin();                  // turn off ESP8266 RF
+    // turn off ESP8266 RF
+    WiFi.forceSleepBegin();
     delay(1);
   }
   memoryAlloc();
