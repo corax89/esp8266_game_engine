@@ -411,7 +411,7 @@ void setup() {
   tft.init();            
   tft.setRotation(0);
   tft.fillScreen(0x0000);
-  tft.setTextSize(1); 
+  tft.setTextSize(1);
   tft.drawXBitmap(30, 24, ESPboyLogo, 68, 64, 0xFFE0);
   tft.setTextColor(0xFFE0);
   tft.setCursor(10,102);

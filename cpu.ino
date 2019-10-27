@@ -16,7 +16,9 @@ int8_t bgcolor = 0;
 int8_t keyPosition;
 String s_buffer;
 String loadedFileName;
-static const char keyArray[] PROGMEM = {"qwertyuiop[]{}()=789\basdfghjkl:;\"/#$@0456\nzxcvbnm<>?.,!%+*-123 "};
+char strBuf[16];
+uint8_t strBufPosition = 0;
+//static const char keyArray[] PROGMEM = {"qwertyuiop[]{}()=789\basdfghjkl:;\"/#$@0456\nzxcvbnm<>?.,!%+*-123 "};
 
 struct Fifo_t {
   uint16_t el[FIFO_MAX_SIZE];
@@ -92,6 +94,7 @@ void cpuInit(){
   for(byte i = 1; i < 16; i++){
     reg[i] = 0;
   }
+  strBufPosition = 0;
   interrupt = 0;
   fifoClear();
   display_init();
@@ -974,6 +977,7 @@ void cpuStep(){
               if(Serial.available())
                 reg[reg1] = Serial.read();
               else{
+                /*
                   viewKeyboard(keyPosition);
                   if((thiskey & 1) && keyPosition > 21)
                     keyPosition -= 21;
@@ -989,6 +993,18 @@ void cpuStep(){
                     pc -= 2;
                 }
                 thiskey = 0;
+                */
+                if(strBufPosition == 0){
+                  strBufPosition = virtualKeyboard(strBuf, 16);
+                  setRedrawRect(63, 128); 
+                }
+                if(strBufPosition > 0){
+                  strBufPosition--;
+                  reg[reg1] = strBuf[strBufPosition];
+                }
+                else
+                  pc -= 2;
+              }
               break;
             case 0x10:
               // GETJ R     D21R

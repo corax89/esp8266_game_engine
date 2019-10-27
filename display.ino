@@ -340,7 +340,7 @@ void setScreenResolution(uint16_t nw, uint16_t nh){
 uint16_t getDisplayXOffset(){
   return displayXOffset;
 }
-
+/*
 void viewKeyboard(int8_t pos){
   isDrawKeyboard = true;
   keyboardPos = pos;
@@ -370,16 +370,18 @@ void drawKeyboard(){
       i++;
     }
 }
-
+*/
 void redrawScreen(){
     int x_ratio = ( int ) ((128 << 16) / rscreenWidth);
     int y_ratio = ( int ) ((128 << 16) / rscreenHeight);
     uint16_t x2, hx2, y2, startx, endx, startj;
     int16_t prevy2 = -1;
+    /*
     if(isDrawKeyboard){
       drawKeyboard();
       isDrawKeyboard = 0;
     }
+    */
     for(int16_t i = 0; i < rscreenHeight; i++) {
       y2 = ((i * y_ratio) >> 16);
       if(line_is_draw[y2]){
@@ -419,6 +421,11 @@ void redrawScreen(){
     }
     for(uint8_t i = 0; i < 128; i++)
       line_is_draw[i] = 0;
+}
+
+void setRedrawRect(uint8_t s, uint8_t e){
+  for(uint8_t i = s; i < e; i++)
+     line_is_draw[i] = 3;
 }
 
 void redrawParticles(){
@@ -1497,11 +1504,11 @@ void putString(char s[], int8_t y){
 }
 
 void putchar(char c, uint8_t x, uint8_t y) {
-    for(int8_t i=0; i<5; i++ ) { // Char bitmap = 5 columns
+    for(int8_t i = 0; i < 5; i++ ) { // Char bitmap = 5 columns
       uint8_t line = pgm_read_byte(&font_a[c * 5 + i]);
-      for(int8_t j=0; j<8; j++, line >>= 1) {
+      for(int8_t j = 0; j < 8; j++, line >>= 1) {
         if(line & 1)
-         setPix(x+i, y+j, color);
+         setPix(x + i, y + j, color);
       }
   }
 }
