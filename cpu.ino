@@ -18,7 +18,6 @@ String s_buffer;
 String loadedFileName;
 char strBuf[16];
 uint8_t strBufPosition = 0;
-//static const char keyArray[] PROGMEM = {"qwertyuiop[]{}()=789\basdfghjkl:;\"/#$@0456\nzxcvbnm<>?.,!%+*-123 "};
 
 struct Fifo_t {
   uint16_t el[FIFO_MAX_SIZE];
@@ -318,8 +317,6 @@ void cpuStep(){
   uint16_t adr;
   uint16_t j;
   uint32_t n = 0;
-  //if(isDebug)
-  //  debug();
   switch(op1 >> 4){
     case 0x0:
       switch(op1){ 
@@ -974,37 +971,20 @@ void cpuStep(){
             case 0x00:
               // GETK R     D20R
               reg1 = (op2 & 0xf);
-              if(Serial.available())
-                reg[reg1] = Serial.read();
-              else{
-                /*
-                  viewKeyboard(keyPosition);
-                  if((thiskey & 1) && keyPosition > 21)
-                    keyPosition -= 21;
-                  if((thiskey & 2) && keyPosition < 42)
-                    keyPosition += 21;
-                  if((thiskey & 4) && keyPosition > 0)
-                    keyPosition--;
-                  if((thiskey & 8) && keyPosition < 62)
-                    keyPosition++;
-                  if(thiskey >= 16)
-                    reg[reg1] = pgm_read_byte_near(keyArray + keyPosition);
-                  else
-                    pc -= 2;
-                }
-                thiskey = 0;
-                */
-                if(strBufPosition == 0){
-                  strBufPosition = virtualKeyboard(strBuf, 16);
-                  setRedrawRect(63, 128); 
-                }
-                if(strBufPosition > 0){
-                  strBufPosition--;
-                  reg[reg1] = strBuf[strBufPosition];
-                }
+              if(strBufPosition == 0){
+                if(getCharY() > 8)
+                  strBufPosition = virtualKeyboard(2, 2, strBuf, 16);
                 else
-                  pc -= 2;
+                  strBufPosition = virtualKeyboard(2, 78, strBuf, 16);
+                setRedrawRect(63, 128); 
               }
+              if(strBufPosition > 0){
+                strBufPosition--;
+                reg[reg1] = strBuf[strBufPosition];
+              }
+              else
+                pc -= 2;
+              thiskey = 0;
               break;
             case 0x10:
               // GETJ R     D21R

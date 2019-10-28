@@ -1434,6 +1434,10 @@ void setCharY(int8_t y){
   regy = y;
 }
 
+int8_t getCharY(){
+  return regy;
+}
+
 void printc(char c, byte fc, byte bc){
   if(c == '\n'){
     fillRect(regx * 6, regy * 8, 127 - regx * 6, 8, bgcolor);

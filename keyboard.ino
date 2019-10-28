@@ -89,18 +89,18 @@ void getKey(){
 }
 #endif
 
-uint8_t virtualKeyboard(char buf[], uint8_t len){
+uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
   String s;
-  char keys[] =      "0123456789%+-*/=qwertyuiop[]{}()asdfghjkl:;\"/#$ zxcvbnm<>?.,!@";
-  char keysShift[] = "0123456789%+-*/=QWERTYUIOP[]{}()ASDFGHJKL:;\"/#^ ZXCVBNM<>?&|!@";
+  char keys[] =      "0123456789[]qwertyuiop\"/asdfghjkl;= zxcvbnm,.-  ";
+  char keysShift[] = "!@#$%^&*(){}QWERTYUIOP|?ASDFGHJKL:+ ZXCVBNM<>_  ";
   int16_t x = 4, y = 4, px = 0, py = 0;
   uint8_t isShift = 0;
   TFT_eSprite img = TFT_eSprite(&tft);
   img.setColorDepth(1);
-  img.createSprite(64, 48);
+  img.createSprite(120, 32);
   img.setTextSize(2);
-  tft.fillRect(64, 64, 64, 64, 0x0000);
-  tft.drawRect(64, 64, 65, 65, 0xFC00);  
+  tft.fillRect(kx, ky, 124, 48, 0x0000);
+  tft.drawRect(kx, ky, 124, 48, 0xFC00);  
   getKey();
   while(1){
      while(x != px * 16 || y !=  py * 16){
@@ -112,37 +112,35 @@ uint8_t virtualKeyboard(char buf[], uint8_t len){
           y += 4;
         else if(y > py * 16)
           y -= 4;
-        img.fillRect(0, 0, 64, 48, 0x0000);
+        img.fillRect(0, 0, 120, 32, 0x0000);
         for(uint8_t i = 0; i < 4; i++){
-          for(uint8_t j = 0; j < 16; j++){
-            if(i == 3 && j == 14){
+          for(uint8_t j = 0; j < 12; j++){
+            if(i == 3 && j == 11){
               img.setTextSize(1);
-              img.drawChar('S', 32 + j * 16 - x - 4, 16 + i * 16 - y);
-              img.drawChar('h', 32 + j * 16 - x + 2, 16 + i * 16 - y);
-              img.drawChar('i', 32 + j * 16 - x - 4, 16 + i * 16 - y + 8);
-              img.drawChar('f', 32 + j * 16 - x + 0, 16 + i * 16 - y + 8);
-              img.drawChar('t', 32 + j * 16 - x + 6, 16 + i * 16 - y + 8);
+              img.drawChar('D', 56 + j * 16 - x - 4, i * 16 - y + 4);
+              img.drawChar('e', 56 + j * 16 - x + 2, i * 16 - y + 4);
+              img.drawChar('l', 56 + j * 16 - x + 8, i * 16 - y + 4);
               img.setTextSize(2);
             }
-            else if(i == 3 && j == 15){
+            else if(i == 2 && j == 11){
               img.setTextSize(1);
-              img.drawChar('E', 32 + j * 16 - x - 4, 16 + i * 16 - y);
-              img.drawChar('n', 32 + j * 16 - x + 2, 16 + i * 16 - y);
-              img.drawChar('t', 32 + j * 16 - x - 4, 16 + i * 16 - y + 8);
-              img.drawChar('e', 32 + j * 16 - x + 2, 16 + i * 16 - y + 8);
-              img.drawChar('r', 32 + j * 16 - x + 8, 16 + i * 16 - y + 8);
+              img.drawChar('E', 56 + j * 16 - x - 4, i * 16 - y);
+              img.drawChar('n', 56 + j * 16 - x + 2, i * 16 - y);
+              img.drawChar('t', 56 + j * 16 - x - 4, i * 16 - y + 8);
+              img.drawChar('e', 56 + j * 16 - x + 2, i * 16 - y + 8);
+              img.drawChar('r', 56 + j * 16 - x + 8, i * 16 - y + 8);
               img.setTextSize(2);
             }
             else{
               if(isShift)
-                img.drawChar(keysShift[i * 16 + j], 32 + j * 16 - x, 16 + i * 16 - y);
+                img.drawChar(keysShift[i * 12 + j], 56 + j * 16 - x, i * 16 - y);
               else
-                img.drawChar(keys[i * 16 + j], 32 + j * 16 - x, 16 + i * 16 - y);
+                img.drawChar(keys[i * 12 + j], 56 + j * 16 - x, i * 16 - y);
             }
           }
         }
-        img.pushSprite(66, 81);
-        tft.drawRect(93, 96, 18, 17, 0xFC00);
+        img.pushSprite(kx + 2, ky + 14);
+        tft.drawRect(kx + 53, ky + 13, 18, 17, 0xFC00);
         delay(10);
     }
     delay(200);
@@ -160,7 +158,7 @@ uint8_t virtualKeyboard(char buf[], uint8_t len){
         py = 3;
     }
     else if(thiskey & 8){//left
-      if(px < 15)
+      if(px < 11)
         px++;
       else
         px = 0;
@@ -169,14 +167,20 @@ uint8_t virtualKeyboard(char buf[], uint8_t len){
       if(px > 0)
         px--;
       else
-        px = 15;
+        px = 11;
     }
     else if(thiskey & 16){//ok
-      if(py == 3 && px == 14){
-        isShift = 1 - isShift;
-        x += 4;
+      if(py == 3 && px == 11){//delite
+        s = s.substring(0, s.length() - 1);
+        tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
+        tft.setCursor(kx + 4,ky + 3);
+        if(s.length() < 16)
+          tft.print(s);
+        else
+          tft.print(s.substring(s.length() - 16));
+        delay(200);
       }
-      else if(py == 3 && px == 15){
+      else if(py == 2 && px == 11){
         img.deleteSprite();
         for(int8_t j = 0; j < min(s.length(), len); j++)
           buf[j] = s[j]; 
@@ -184,26 +188,20 @@ uint8_t virtualKeyboard(char buf[], uint8_t len){
       }
       else{
         if(isShift)
-          s += keysShift[px + py * 16];
+          s += keysShift[px + py * 12];
         else
-          s += keys[px + py * 16];
-        tft.fillRect(65, 65, 63, 15, 0x0000);
-        tft.setCursor(67,68);
-        if(s.length() < 10)
+          s += keys[px + py * 12];
+        tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
+        tft.setCursor(kx + 4,ky + 3);
+        if(s.length() < 16)
           tft.print(s);
         else
-          tft.print(s.substring(s.length() - 10));
+          tft.print(s.substring(s.length() - 16));
       }
     }
-    else if(thiskey & 32){//del
-      s = s.substring(0, s.length() - 1);
-      tft.fillRect(65, 65, 63, 15, 0x0000);
-      tft.setCursor(67,68);
-      if(s.length() < 10)
-        tft.print(s);
-      else
-        tft.print(s.substring(s.length() - 10));
-      delay(200);
+    else if(thiskey & 32){//shift
+      isShift = 1 - isShift;
+      x += 4;
     }
   }
   return 0;
