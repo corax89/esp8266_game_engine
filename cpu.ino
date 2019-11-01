@@ -17,6 +17,7 @@ int8_t keyPosition;
 String s_buffer;
 String loadedFileName;
 char strBuf[16];
+uint8_t strBufLength = 0;
 uint8_t strBufPosition = 0;
 
 struct Fifo_t {
@@ -971,16 +972,28 @@ void cpuStep(){
             case 0x00:
               // GETK R     D20R
               reg1 = (op2 & 0xf);
-              if(strBufPosition == 0){
+              if(strBufLength == 0){
                 if(getCharY() > 8)
-                  strBufPosition = virtualKeyboard(2, 2, strBuf, 16);
+                  strBufLength = virtualKeyboard(2, 2, strBuf, 16);
                 else
-                  strBufPosition = virtualKeyboard(2, 78, strBuf, 16);
-                setRedrawRect(63, 128); 
+                  strBufLength = virtualKeyboard(2, 78, strBuf, 16);
+                if(strBufLength == 0){
+                  strBuf[0] = '\n';
+                  strBufLength = 1;
+                }
+                setRedrawRect(63, 128);
+                strBufPosition = 0;
               }
-              if(strBufPosition > 0){
-                strBufPosition--;
-                reg[reg1] = strBuf[strBufPosition];
+              if(strBufLength > 0){
+                if(strBufPosition < strBufLength){
+                  reg[reg1] = strBuf[strBufPosition];
+                }
+                else{
+                  strBufPosition = 0;
+                  strBufLength = 0;
+                  pc -= 2;
+                }
+                strBufPosition++;
               }
               else
                 pc -= 2;

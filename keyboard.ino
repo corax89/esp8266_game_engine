@@ -90,10 +90,9 @@ void getKey(){
 #endif
 
 uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
-  String s;
   char keys[] =      "0123456789[]qwertyuiop\"/asdfghjkl;= zxcvbnm,.-  ";
   char keysShift[] = "!@#$%^&*(){}QWERTYUIOP|?ASDFGHJKL:+ ZXCVBNM<>_  ";
-  int16_t x = 4, y = 4, px = 0, py = 0;
+  int16_t x = 4, y = 4, px = 0, py = 0, pos = 0;
   uint8_t isShift = 0;
   TFT_eSprite img = TFT_eSprite(&tft);
   img.setColorDepth(1);
@@ -171,32 +170,44 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
     }
     else if(thiskey & 16){//ok
       if(py == 3 && px == 11){//delite
-        s = s.substring(0, s.length() - 1);
+        if(pos > 0){
+          buf[pos] = 0;
+          pos--;
+        }
         tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
         tft.setCursor(kx + 4,ky + 3);
-        if(s.length() < 16)
-          tft.print(s);
-        else
-          tft.print(s.substring(s.length() - 16));
+        for(int i = max(0, pos - 10); i < pos; i++)
+          tft.print(buf[i]);
+        tft.setTextColor(0x6d2d);
+        tft.setCursor(kx + 100 - ((pos > 9) ? ((pos > 99)? 12: 6) : 0) - ((len > 9) ? ((len > 99)? 12: 6) : 0), ky + 3);
+        tft.print(pos);
+        tft.print('/');
+        tft.print(len);
+        tft.setTextColor(0xffff);
         delay(200);
       }
       else if(py == 2 && px == 11){
         img.deleteSprite();
-        for(int8_t j = 0; j < min(s.length(), len); j++)
-          buf[j] = s[j]; 
-        return min(s.length(), len);
+        return pos;
       }
       else{
-        if(isShift)
-          s += keysShift[px + py * 12];
-        else
-          s += keys[px + py * 12];
-        tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
-        tft.setCursor(kx + 4,ky + 3);
-        if(s.length() < 16)
-          tft.print(s);
-        else
-          tft.print(s.substring(s.length() - 16));
+        if(pos < len){
+          if(isShift)
+            buf[pos] = keysShift[px + py * 12];
+          else
+            buf[pos] = keys[px + py * 12];
+          tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
+          tft.setCursor(kx + 4,ky + 3);
+          pos++;
+          for(int i = max(0, pos - 10); i < pos; i++)
+            tft.print(buf[i]);
+          tft.setTextColor(0x6d2d);
+          tft.setCursor(kx + 100 - ((pos > 9) ? ((pos > 99)? 12: 6) : 0) - ((len > 9) ? ((len > 99)? 12: 6) : 0), ky + 3);
+          tft.print(pos);
+          tft.print('/');
+          tft.print(len);
+          tft.setTextColor(0xffff);
+        }
       }
     }
     else if(thiskey & 32){//shift
