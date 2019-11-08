@@ -29,6 +29,9 @@ struct Fifo_t {
 
 struct Fifo_t interruptFifo;
 
+#pragma GCC optimize ("-O2")
+#pragma GCC push_options
+
 inline void fifoClear(){
   interruptFifo.position_read = 0;
   interruptFifo.position_write = 0;
@@ -981,7 +984,7 @@ void cpuStep(){
                   strBuf[0] = '\n';
                   strBufLength = 1;
                 }
-                setRedrawRect(63, 128);
+                setRedrawRect(0, 128);
                 strBufPosition = 0;
               }
               if(strBufLength > 0){
@@ -1162,3 +1165,5 @@ void cpuStep(){
       break;
   }
 }
+
+#pragma GCC pop_options

@@ -188,6 +188,10 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
       }
       else if(py == 2 && px == 11){
         img.deleteSprite();
+        if(pos + 1 < len){
+          buf[pos] = '\n';
+          pos++;
+        }
         return pos;
       }
       else{

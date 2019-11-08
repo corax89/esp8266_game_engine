@@ -50,7 +50,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define COOS_REV_MAJ         1
 #define COOS_REV_MIN         6
 
-
 //##############################################################################
 // Template class                                              
 //##############################################################################
@@ -59,24 +58,19 @@ template <unsigned char COOS_MAX_TASKS, char TIMING> class Coos{
   public:
                     Coos(void);                         // constructor
     void            register_task(void (*tsk)(void));   // user's tasks must be registered first
-    void            register_clock(void (*clk)(void));  // users's clock function will be invoked every minute
     void            start(void);                        // init scheduler once
     void            run(void);                          // COOS task switcher
-    uchar           hour(void);                         // current hour since midnight 
-    uchar           minute(void);                       // current minute  
     jmp_buf         main_context;                       // context of scheduler
     jmp_buf         task_context[COOS_MAX_TASKS];       // list of task contexts
     uchar           task_no;                            // current task No
     int             task_delay[COOS_MAX_TASKS];         // task delay in msec, task stopped if value is negative
     unsigned int    msec;                               // ms of current sec
-    unsigned long   daysec;                             // seconds since midnight
     unsigned long   uptime;                             // seconds since start
     
   private:
     void            (*tsk_p[COOS_MAX_TASKS])(void);     // list of registered tasks
     unsigned int    ms;
-    unsigned char   task_cnt;                           // counts registered coos tasks
-    void            (*clkfunc)(void);                   // user's clock function        
+    unsigned char   task_cnt;                           // counts registered coos tasks    
     void            update_time(void);
     unsigned char   stored_min;
 };
@@ -91,7 +85,6 @@ template <unsigned char COOS_MAX_TASKS, char TIMING> class Coos{
 template <unsigned char COOS_MAX_TASKS, char TIMING> Coos<COOS_MAX_TASKS, TIMING>::Coos(void)
 {
   uptime = 0;
-  daysec = 0;
   msec = 0;
   ms = 0;
   task_cnt = 0;
@@ -100,7 +93,6 @@ template <unsigned char COOS_MAX_TASKS, char TIMING> Coos<COOS_MAX_TASKS, TIMING
     tsk_p[i] = NULL;                   // task is not registered
     task_delay[i] = COOS_STOP;         // all unregistered tasks stopped
   }
-  clkfunc = NULL;
 }
 // =================================
 // Register a task 
@@ -113,13 +105,6 @@ template <unsigned char COOS_MAX_TASKS, char TIMING> void Coos<COOS_MAX_TASKS, T
   }
 }
 // =================================
-// Register user's clock function 
-// =================================
-template <unsigned char COOS_MAX_TASKS, char TIMING> void Coos<COOS_MAX_TASKS, TIMING>::register_clock(void (*clk)(void))
-{
-    clkfunc = clk;
-}
-// =================================
 // Update time
 // =================================
 // supposed to happen more often than every millisecond,
@@ -127,43 +112,6 @@ template <unsigned char COOS_MAX_TASKS, char TIMING> void Coos<COOS_MAX_TASKS, T
 template <unsigned char COOS_MAX_TASKS, char TIMING> void Coos<COOS_MAX_TASKS, TIMING>::update_time(void)
 {
   unsigned int millisec = (unsigned int)millis(); 
-  if (TIMING) // ticks 1.024 ms
-  {    
-    if (ms != millisec) // 1024 us passed, decrement task delays once 
-    {
-      for (int i=0; i<task_cnt; i++)
-      {
-        if (task_delay[i] > 0)  // decrement positive delays 
-        {
-          task_delay[i]--;
-        }
-      }
-    }
-    while (ms != millisec) // about every 42 ms millis() is corrected, eg changed by 2
-    {      
-      ms++;  
-      if (++msec >= 1000) // if 1 sec passed
-      {
-        uptime++;               // count seconds since start
-        if (++daysec >= 86400)  // count seconds since midnight
-        {
-            daysec = 0;
-        }
-        msec = 0;
-        if (clkfunc) // if user's clock function registered
-        {
-          unsigned char min = (unsigned char)((daysec % 3600) / 60);    
-          if ( min != stored_min)
-          {
-            stored_min = min;
-            clkfunc();          // invoke user's clock function          
-          }             
-        }
-      }
-    }  
-  } 
-  else // ticks 1 ms in average
-  {
     while (ms != millisec)  // catch up time
     {      
       ms++;  
@@ -177,35 +125,10 @@ template <unsigned char COOS_MAX_TASKS, char TIMING> void Coos<COOS_MAX_TASKS, T
       if (++msec >= 1000) // if 1 sec passed
       {
         uptime++;               // count seconds since start
-        if (++daysec >= 86400)  // count seconds since midnight
-        {
-            daysec = 0;
-        } 
         msec = 0;
-        if (clkfunc) // if user's clock function registered
-        {
-          unsigned char min = (unsigned char)((daysec % 3600) / 60);    
-          if ( min != stored_min)
-          {
-            stored_min = min;
-            clkfunc();          // invoke user's clock function          
-          }             
-        }
       }
     }  
-  }
 }
-// =================================
-// Get current time of the day based on daysec
-// =================================
-template <unsigned char COOS_MAX_TASKS, char TIMING>  unsigned char Coos<COOS_MAX_TASKS, TIMING>::hour(void)
-{
-    return (unsigned char)(daysec / 3600);
-}      
-template <unsigned char COOS_MAX_TASKS, char TIMING>  unsigned char Coos<COOS_MAX_TASKS, TIMING>::minute(void)
-{
-    return (unsigned char)((daysec % 3600) / 60); 
-}      
 // =================================
 // Start scheduler - init registered tasks
 // =================================

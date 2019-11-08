@@ -125,8 +125,8 @@ static const uint8_t pauseImage[] PROGMEM = {
   0x42,0x40,0x88,0xd9,0x82,0x40,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xee,0xa1,0x59,0xb7,0x8a,0xc1,0x92,0x22,0xca,
   0x81,0x19,0x32,0x8a,0x81,0x10,0xa2,0x8e,0x81,0x1b,0x32,0x0,0x0,0x0,0x0
 };
-uint8_t *screen;//screen[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
-uint8_t *sprite_screen;//[SCREEN_ARRAY_DEF] __attribute__ ((aligned));
+uint8_t *screen;
+uint8_t *sprite_screen;
 uint8_t line_is_draw[128] __attribute__ ((aligned));
 char charArray[340];
 uint16_t pix_buffer[SCREEN_REAL_WIDTH] __attribute__ ((aligned));
@@ -340,48 +340,12 @@ void setScreenResolution(uint16_t nw, uint16_t nh){
 uint16_t getDisplayXOffset(){
   return displayXOffset;
 }
-/*
-void viewKeyboard(int8_t pos){
-  isDrawKeyboard = true;
-  keyboardPos = pos;
-}
 
-void drawKeyboard(){
-  int16_t i = 0;
-  uint8_t bit;
-  uint16_t adr = 0;
-  uint8_t px = keyboardPos % 21;
-  uint8_t py = keyboardPos / 21;
-  for(int8_t y = 0; y < 24; y++)
-    for(uint8_t x = 0; x < 128; x++){
-      if(i % 8 == 0){
-        bit = pgm_read_byte_near(keyboardImage + adr);
-        adr++;
-      }
-      if(bit & 0x80)
-        drawSprPixel(11, 0, 104, x, y);
-      else{
-        if(y / 8 == py && x / 6 == px)
-          drawSprPixel(10, 0, 104, x, y);
-        else
-          drawSprPixel(1, 0, 104, x, y);
-      }
-      bit = bit << 1;
-      i++;
-    }
-}
-*/
 void redrawScreen(){
     int x_ratio = ( int ) ((128 << 16) / rscreenWidth);
     int y_ratio = ( int ) ((128 << 16) / rscreenHeight);
     uint16_t x2, hx2, y2, startx, endx, startj;
     int16_t prevy2 = -1;
-    /*
-    if(isDrawKeyboard){
-      drawKeyboard();
-      isDrawKeyboard = 0;
-    }
-    */
     for(int16_t i = 0; i < rscreenHeight; i++) {
       y2 = ((i * y_ratio) >> 16);
       if(line_is_draw[y2]){
