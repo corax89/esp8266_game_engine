@@ -14,7 +14,7 @@ byte redraw = 0;
 int8_t color = 1;
 int8_t bgcolor = 0;
 int8_t keyPosition;
-String s_buffer;
+char s_buffer[7];
 String loadedFileName;
 char strBuf[16];
 uint8_t strBufLength = 0;
@@ -951,11 +951,13 @@ void cpuStep(){
               //PUTN R D12R
               reg1 = (op2 & 0xf);
               if(reg[reg1] < 32768)
-                s_buffer = String(reg[reg1]);
+                itoa(reg[reg1], s_buffer, 10);
               else
-                s_buffer = String(reg[reg1] - 0x10000);
-              for(j = 0; j < s_buffer.length(); j++){
+                itoa(reg[reg1] - 0x10000, s_buffer, 10);
+              j = 0;
+              while(s_buffer[j]){
                 printc(s_buffer[j], color, bgcolor);
+                j++;
               }
               break;
             case 0x30:

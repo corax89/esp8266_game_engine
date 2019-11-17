@@ -33,5 +33,5 @@
 #define SCREEN_ARRAY_DEF SCREEN_SIZE
 #define SCREEN_ADDR(x, y) ((int(y) << 6) + int(x))
 
-#define PARTICLE_COUNT 24
+#define PARTICLE_COUNT 32
 #define EEPROM_SIZE   512

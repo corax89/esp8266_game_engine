@@ -39,7 +39,7 @@ Ticker timer;
 uint16_t cadr_count = 0;
 uint16_t rtttl_delay = 0;
 unsigned long timeF,timeR;
-uint16_t timeCpu = 0,timeGpu = 0,timeSpr = 0,cpuOPS = 0;
+uint16_t timeCpu = 0,timeGpu = 0,timeSpr = 0,cpuOPS = 0,cpuOPSD = 0;
 uint8_t fps, fileIsLoad;
 volatile uint16_t timers[8];
 uint8_t mem[RAM_SIZE] = {
@@ -163,11 +163,11 @@ uint8_t mem[RAM_SIZE] = {
 };
 
 static const uint16_t bpalette[] = {
-    0x0020, 0xE718, 0xB9A8, 0x7DB6, 0x41E9, 0x6D2D, 0x21EC, 0xD5CA,
-    0xAC4D, 0x42CB, 0xBB09, 0x3186, 0x73AE, 0x8D4B, 0x3DF9, 0xbdd7
+    0x0020, 0xE718, 0xB9A8, 0x7DB6, 0x61EB, 0x6D2D, 0x21EC, 0xD5CA,
+    0xAC4D, 0x42CB, 0xBB09, 0x3186, 0x73AE, 0x8D4B, 0x3DF9, 0xBDD7
 };
-uint16_t palette[16];
-uint16_t sprtpalette[16];
+uint16_t palette[16] __attribute__ ((aligned));
+uint16_t sprtpalette[16] __attribute__ ((aligned));
 
 uint16_t bgr_to_rgb(uint16_t c){
   return ((c & 0x001f) << 11) + ((c & 0xf800) >> 11) + (c & 0x07e0);
@@ -250,6 +250,8 @@ void changeSettings(){
     }
     else if(c == 'd'){
       debug();
+      Serial.print(F("kIPS"));
+      Serial.println(cpuOPSD, DEC);
       return;
     }
     else if(c == 'e'){
@@ -292,7 +294,7 @@ void coos_cpu(void){
     COOS_DELAY(0);        // 1 ms
     timeR = millis();
     cpuOPS += 1;
-    cpuRun(1100);  
+    cpuRun(1000);
     timeCpu += millis() - timeR;
   }
 }
@@ -373,6 +375,7 @@ void coos_info(void){
     timeCpu = 0;
     timeGpu = 0;
     timeSpr = 0;
+    cpuOPSD = cpuOPS;
     cpuOPS = 0;
   }
 }

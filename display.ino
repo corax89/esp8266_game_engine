@@ -1463,11 +1463,15 @@ void fillRect(int8_t x, int8_t y, uint8_t w, uint8_t h, uint8_t c){
 void putString(char s[], int8_t y){
   int8_t i = 0;
   while(s[i] != 0 && i < 32){
-    if(i < 17)
-      putchar(s[i], 25 + i * 6, y);
-    else
-      putchar(s[i], 25 + (i - 17) * 6, y + 8);
+    if(s[i] != '/'){
+      if(i < 17)
+        putchar(s[i], 25 + i * 6, y);
+      else
+        putchar(s[i], 25 + (i - 17) * 6, y + 8);
+    }
     i++;
+    if(s[i] == '.')
+      return;
   }
 }
 

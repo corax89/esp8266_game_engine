@@ -218,7 +218,7 @@ void fileList(String path) {
     getKey();
     while(thiskey == 0){  
       clearScr(0);
-      putString("No files. Please upload files.", 2);
+      putString("No files, please upload files", 2);
       redrawScreen();
       getKey();
       delay(100);
