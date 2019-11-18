@@ -125,16 +125,16 @@ static const uint8_t pauseImage[] PROGMEM = {
   0x42,0x40,0x88,0xd9,0x82,0x40,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xee,0xa1,0x59,0xb7,0x8a,0xc1,0x92,0x22,0xca,
   0x81,0x19,0x32,0x8a,0x81,0x10,0xa2,0x8e,0x81,0x1b,0x32,0x0,0x0,0x0,0x0
 };
-uint8_t *screen;
-uint8_t *sprite_screen;
+uint8_t *screen __attribute__ ((aligned));
+uint8_t *sprite_screen __attribute__ ((aligned));
 uint8_t line_is_draw[128] __attribute__ ((aligned));
-char charArray[340];
+char charArray[340] __attribute__ ((aligned));
 uint16_t pix_buffer[SCREEN_REAL_WIDTH] __attribute__ ((aligned));
 uint16_t rscreenWidth;
 uint16_t rscreenHeight;
 uint16_t displayXOffset = 32;
-struct sprite sprite_table[32];
-struct Particle particles[PARTICLE_COUNT];
+struct sprite sprite_table[32] __attribute__ ((aligned));
+struct Particle particles[PARTICLE_COUNT] __attribute__ ((aligned));
 struct Emitter emitter;
 struct Tile tile;
 int8_t imageSize = 1;

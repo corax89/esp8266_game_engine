@@ -293,8 +293,8 @@ void coos_cpu(void){
   while(1){
     COOS_DELAY(0);        // 1 ms
     timeR = millis();
-    cpuOPS += 1;
-    cpuRun(1000);
+    cpuOPS += 2;
+    cpuRun(2000);
     timeCpu += millis() - timeR;
   }
 }
@@ -302,7 +302,7 @@ void coos_cpu(void){
 void coos_screen(void){
    while(1){
     yield();
-    COOS_DELAY(50);        // 50 ms
+    COOS_DELAY(45);        // 45 ms
     timeR = millis();
     clearSpriteScr();
     redrawSprites();
@@ -344,8 +344,6 @@ void coos_rtttl(void){
   while(1){
     rtttl_delay = playRtttl();
     if(rtttl_delay){
-      if(rtttl_delay > 10)
-        rtttl_delay -= 10;
       COOS_DELAY(rtttl_delay);
     }
     else
