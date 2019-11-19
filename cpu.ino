@@ -950,6 +950,42 @@ void cpuStep(){
               reg1 = (op2 & 0xf);
               setCharY(reg[reg1] & 0xff);
               break;
+            case 0x50:
+              //DRECT R     D15R
+              reg1 = (op2 & 0xf);
+              adr = reg[reg1];
+              drwRect(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            break;
+            case 0x60:
+              //FRECT R     D16R
+              reg1 = (op2 & 0xf);
+              adr = reg[reg1];
+              fllRect(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            break;
+            case 0x70:
+              //DCIRC R     D17R
+              reg1 = (op2 & 0xf);
+              adr = reg[reg1];
+              drwCirc(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            break;
+            case 0x80:
+              //FCIRC R     D18R
+              reg1 = (op2 & 0xf);
+              adr = reg[reg1];
+              fllCirc(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            break;
+            case 0x90:
+              //DTRIANG R   D19R
+              reg1 = (op2 & 0xf);
+              adr = reg[reg1];
+              drwTriangle(readInt(adr + 10), readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            break;
+            case 0xA0:
+              //FTRIANG R   D1AR
+              reg1 = (op2 & 0xf);
+              adr = reg[reg1];
+              fllTriangle(readInt(adr + 10), readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            break;
           }
           break;
         case 0xD2: 
