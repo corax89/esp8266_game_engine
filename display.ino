@@ -169,8 +169,6 @@ int16_t getSin(int16_t g){
   return (int16_t)(int8_t)pgm_read_byte_near(sinT + g);
 }
 
-#define MULTIPLY_FP_RESOLUTION_BITS  6
-
 int16_t atan2_fp(int16_t y_fp, int16_t x_fp){
   int32_t coeff_1 = 45;
   int32_t coeff_1b = -56; // 56.24;
@@ -1402,7 +1400,7 @@ int8_t getCharY(){
   return regy;
 }
 
-void printc(char c, byte fc, byte bc){
+void printc(char c, uint8_t fc, uint8_t bc){
   if(c == '\n'){
     fillRect(regx * 6, regy * 8, 127 - regx * 6, 8, bgcolor);
     for(byte i = regx; i <= 21; i++){
@@ -1444,6 +1442,45 @@ void printc(char c, byte fc, byte bc){
       }
     }
   }
+}
+
+
+void printfix(uint16_t value, uint8_t fc, uint8_t bc){
+    char sbuffer[10];
+    const uint16_t fractPartMask = (1 << MULTIPLY_FP_RESOLUTION_BITS) - 1;
+    int16_t j; 
+    if(value == 0){
+        printc('0', color, bgcolor);
+    }
+    uint16_t intPart = value >> MULTIPLY_FP_RESOLUTION_BITS;
+    value &= fractPartMask;
+    // преобразуем целую часть
+    itoa(intPart, sbuffer, 10);
+    j = 0;
+    while(sbuffer[j]){
+      printc(sbuffer[j], color, bgcolor);
+      j++;
+    }
+    char *ptr = sbuffer;
+    // если есть дробная часть
+    if(value != 0){
+        *ptr = '.';
+        for(j = 0; j < 3; j++){
+            value &= fractPartMask;
+            value *= 10;
+            //value <<= 1;
+            //value += value << 2;
+            *++ptr = (uint8_t)(value >> MULTIPLY_FP_RESOLUTION_BITS) + '0';
+        }
+        // удаляем завершаюшие нули
+        while(ptr[0] == '0') --ptr;
+        ptr[1] = 0;
+    }
+    j = 0;
+    while(sbuffer[j]){
+      printc(sbuffer[j], color, bgcolor);
+      j++;
+    }
 }
 
 void setColor(uint8_t c){

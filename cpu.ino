@@ -1,4 +1,5 @@
 #include <EEPROM.h>
+#include "settings.h"
 
 #define FIFO_MAX_SIZE 32
 
@@ -896,6 +897,32 @@ void cpuStep(){
           else
             reg[reg1] = 0;
           break;
+        case 0xc3:
+          reg1 = op2 & 0xf;
+          reg2 = op2 & 0xf0;
+          // ITOF R   C3 0R
+          if (reg2 == 0x00) {
+            reg[reg1] = reg[reg1] * (1 << MULTIPLY_FP_RESOLUTION_BITS);
+          }
+          // FTOI R   C3 1R
+          else if (reg2 == 0x10) {
+            reg[reg1] = reg[reg1] / (1 << MULTIPLY_FP_RESOLUTION_BITS);
+          }
+          break;
+        case 0xC4:
+          // MULF R,R   C4 RR
+          reg1 = (op2 & 0xf0) >> 4;
+          reg2 = op2 & 0xf;
+          accum = (reg[reg1] * reg[reg2]) / (1 << MULTIPLY_FP_RESOLUTION_BITS);
+          reg[reg1] = (uint16_t) accum;
+          break;
+        case 0xC5:
+          // DIVF R,R   C5 RR
+          reg1 = (op2 & 0xf0) >> 4;
+          reg2 = op2 & 0xf;
+          accum = (reg[reg1] * (1 << MULTIPLY_FP_RESOLUTION_BITS)) / reg[reg2];
+          reg[reg1] = (uint16_t) accum;
+          break;
       }
       break;
     case 0xD:
@@ -985,6 +1012,11 @@ void cpuStep(){
               reg1 = (op2 & 0xf);
               adr = reg[reg1];
               fllTriangle(readInt(adr + 10), readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            break;
+            case 0xB0:
+              //PUTF R      D1BR
+              reg1 = (op2 & 0xf);
+              printfix(reg[reg1], color, bgcolor);
             break;
           }
           break;
