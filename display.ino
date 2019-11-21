@@ -155,17 +155,11 @@ void memoryAlloc(){
     Serial.println(F("Out of memory"));
 }
 
-int16_t getCos(int16_t g){
-  g = g % 360;
-  if(g < 0)
-    g += 360;
+inline int16_t getCos(int16_t g){
   return (int16_t)(int8_t)pgm_read_byte_near(cosT + g);
 }
 
-int16_t getSin(int16_t g){
-  g = g % 360;
-  if(g < 0)
-    g += 360;
+inline int16_t getSin(int16_t g){
   return (int16_t)(int8_t)pgm_read_byte_near(sinT + g);
 }
 
@@ -302,6 +296,9 @@ void setParticle(int8_t gravity, uint8_t count, uint16_t time){
 }
 
 void setEmitter(uint16_t time, int16_t dir, int16_t dir1, int16_t speed){
+  dir = dir % 360;
+  if(dir < 0)
+    dir += 360;
   emitter.time = time;
   emitter.speedx = (int8_t)((speed * getCos(dir)) >> 6);
   emitter.speedy = (int8_t)((speed * getSin(dir)) >> 6);
@@ -626,6 +623,9 @@ void setSprPosition(int8_t n, uint16_t x, uint16_t y){
 }
 
 void spriteSetDirectionAndSpeed(int8_t n, uint16_t speed, int16_t dir){
+  dir = dir % 360;
+  if(dir < 0)
+    dir += 360;
   sprite_table[n].speedx = ((speed * getCos(dir)) >> 6);
   sprite_table[n].speedy = ((speed * getSin(dir)) >> 6);
 }
@@ -1445,14 +1445,14 @@ void printc(char c, uint8_t fc, uint8_t bc){
 }
 
 
-void printfix(uint16_t value, uint8_t fc, uint8_t bc){
+void printfix(int16_t value, uint8_t fc, uint8_t bc){
     char sbuffer[10];
     const uint16_t fractPartMask = (1 << MULTIPLY_FP_RESOLUTION_BITS) - 1;
     int16_t j; 
     if(value == 0){
         printc('0', color, bgcolor);
     }
-    uint16_t intPart = value >> MULTIPLY_FP_RESOLUTION_BITS;
+    int16_t intPart = value >> MULTIPLY_FP_RESOLUTION_BITS;
     value &= fractPartMask;
     // преобразуем целую часть
     itoa(intPart, sbuffer, 10);

@@ -291,6 +291,30 @@ uint16_t loadData(uint16_t arrayAddress){
   return c;
 }
 
+int16_t fixed_sin(int x) {
+  //Bhaskara I's sine approximation sin(x°) = 4·x·(180−x)/(40500−x·(180−x))
+  char pos = 1;  // positive - keeps an eye on the sign.
+  if (x < 0){
+    x = -x;
+    pos = !pos;
+  }
+  if (x >= 360)
+    x %= 360;
+  if (x > 180){
+    x -= 180;
+    pos = !pos;
+  }
+  int16_t nv = x * (180 - x);
+  int32_t s = (nv * 4  * (1 << MULTIPLY_FP_RESOLUTION_BITS))/(40500 - nv);
+  if (pos) 
+    return (int16_t)s;
+  return (int16_t)-s;
+}
+
+inline int16_t fixed_cos(int16_t g){
+  return fixed_sin(g+90);
+}
+
 #ifdef ESPBOY
 void setLedColor(uint16_t r5g6b5){
   uint8_t r,g,b;
@@ -907,6 +931,14 @@ void cpuStep(){
           // FTOI R   C3 1R
           else if (reg2 == 0x10) {
             reg[reg1] = reg[reg1] / (1 << MULTIPLY_FP_RESOLUTION_BITS);
+          }
+          // SIN R   C3 2R
+          else if (reg2 == 0x20) {
+            reg[reg1] = fixed_sin(reg[reg1]);
+          }
+          // SIN R   C3 3R
+          else if (reg2 == 0x30) {
+            reg[reg1] = fixed_cos(reg[reg1]);
           }
           break;
         case 0xC4:
