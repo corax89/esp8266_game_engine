@@ -1452,8 +1452,13 @@ void printfix(int16_t value, uint8_t fc, uint8_t bc){
     if(value == 0){
         printc('0', color, bgcolor);
     }
+    if (value < 0){
+      printc('-', color, bgcolor);
+      value = (~value) + 1;
+    }
     int16_t intPart = value >> MULTIPLY_FP_RESOLUTION_BITS;
     value &= fractPartMask;
+    
     // преобразуем целую часть
     itoa(intPart, sbuffer, 10);
     j = 0;
