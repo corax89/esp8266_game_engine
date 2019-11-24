@@ -9,10 +9,10 @@ uint16_t pc = 0;
 uint16_t interrupt = 0;
 uint16_t dataName = 0;
 uint32_t accum, saccum;
-byte carry = 0;
-byte zero = 0;
-byte negative = 0;
-byte redraw = 0;
+uint8_t carry = 0;
+uint8_t zero = 0;
+uint8_t negative = 0;
+uint8_t redraw = 0;
 int8_t color = 1;
 int8_t bgcolor = 0;
 int8_t keyPosition;
@@ -62,11 +62,11 @@ inline uint16_t popOutFifo(){
   return out;
 }
 
-inline int16_t flagsToByte(){
+inline int16_t flagsTouint8_t(){
   return (carry & 0x1) + ((zero & 0x1) << 1)  + ((negative & 0x1) << 2);
 }
   
-inline void byteToFlags(int16_t b){
+inline void uint8_tToFlags(int16_t b){
   carry = b & 0x1;
   zero = (b & 0x2) >> 1;
   negative = (b & 0x4) >> 2;
@@ -75,7 +75,7 @@ inline void byteToFlags(int16_t b){
 inline void setinterrupt(uint16_t adr, int16_t param){
   if(interrupt == 0 && adr != 0){
     saccum = accum;
-    shadow_reg[0] = flagsToByte();
+    shadow_reg[0] = flagsTouint8_t();
     for(int8_t j = 1; j <= 15; j++){
       shadow_reg[j] = reg[j];
     }
@@ -97,7 +97,7 @@ void setLoadedFileName(String s){
 }
 
 void cpuInit(){
-  for(byte i = 1; i < 16; i++){
+  for(uint8_t i = 1; i < 16; i++){
     reg[i] = 0;
   }
   strBufPosition = 0;
@@ -118,7 +118,7 @@ void cpuInit(){
 }
 
 void debug(){
-  for(byte i = 0; i < 16; i++){
+  for(uint8_t i = 0; i < 16; i++){
     Serial.print(" R");
     Serial.print(i);
     Serial.print(':');
@@ -332,11 +332,11 @@ inline void cpuRun(uint16_t n){
 }
 
 void cpuStep(){
-  byte op1 = readMem(pc++);
-  byte op2 = readMem(pc++);
-  byte reg1 = 0;
-  byte reg2 = 0;
-  byte reg3 = 0;
+  uint8_t op1 = readMem(pc++);
+  uint8_t op2 = readMem(pc++);
+  uint8_t reg1 = 0;
+  uint8_t reg2 = 0;
+  uint8_t reg3 = 0;
   uint16_t adr;
   uint16_t j;
   switch(op1 >> 4){
@@ -701,7 +701,7 @@ void cpuStep(){
               for(int8_t j = 15; j >= 1; j--){
                 reg[j] = shadow_reg[j];
               }
-              byteToFlags(shadow_reg[0]);
+              uint8_tToFlags(shadow_reg[0]);
               interrupt = 0;
               if(interruptFifo.size > 0)
                 setinterrupt(popOutFifo(), popOutFifo());

@@ -9,10 +9,16 @@
 
 #include "settings.h"
 #ifdef ESPBOY
-  #include "ESPboyLogo.h"
   #include <Adafruit_MCP23017.h>
   #include <Adafruit_MCP4725.h>
   #include <FastLED.h>
+  #include "ESPboyLogo.h"
+  #include "ESPboy_keyboard.h"
+  
+  keyboardModule keybModule(1,1,7000);
+  Adafruit_MCP23017 mcp;
+  Adafruit_MCP4725 dac;
+  CRGB leds[1];
 #endif
 
 Coos <5, 0> coos;
@@ -20,11 +26,6 @@ Coos <5, 0> coos;
 // Use hardware SPI
 TFT_eSPI tft = TFT_eSPI();
 
-#ifdef ESPBOY
-Adafruit_MCP23017 mcp;
-Adafruit_MCP4725 dac;
-CRGB leds[1];
-#endif
 
 // ------------------begin ESP8266'centric----------------------------------
 #include "ESP8266WiFi.h"
@@ -406,6 +407,8 @@ void setup() {
   FastLED.show();
   FastLED.show();
   delay(50);
+  if (keybModule.begin())
+    Serial.println(F("\nESPboy keyboard module found"));
   //initialize LCD
   mcp.pinMode(csTFTMCP23017pin, OUTPUT);
   mcp.digitalWrite(csTFTMCP23017pin, LOW);

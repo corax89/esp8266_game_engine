@@ -2,7 +2,7 @@
 #include "settings.h"
 
 void geti2cAdress(){
-  byte error,address;
+  uint8_t error,address;
   i2c_adress=0;
   for(address = 1; address < 127; address++ ){
     Wire.beginTransmission(address);
@@ -16,7 +16,7 @@ void geti2cAdress(){
 }
 
 void scani2c(){
-  byte error, address;
+  uint8_t error, address;
   int nDevices;
   nDevices = 0;
   for(address = 1; address < 127; address++ ){
@@ -63,7 +63,7 @@ void getKey(){
 }
 #else
 void getKey(){
-  byte dio_in;
+   dio_in;
   Wire.beginTransmission(i2c_adress);
   Wire.write(B11111111); //Конфигурация всех портов PCF8574P на клавиатуре как входа
   Wire.endTransmission();
@@ -143,6 +143,32 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
         delay(10);
     }
     delay(200);
+  #ifdef ESPBOY
+    if (keybModule.getPressedKey()){
+      if((char)keybModule.getLastPressedKey() == '\n'){
+        img.deleteSprite();
+        if(pos + 1 < len){
+          buf[pos] = '\n';
+          pos++;
+        }
+        return pos;
+      }
+      if(pos < len){
+        buf[pos] = (char)keybModule.getLastPressedKey();
+        tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
+        tft.setCursor(kx + 4,ky + 3);
+        pos++;
+        for(int i = max(0, pos - 10); i < pos; i++)
+          tft.print(buf[i]);
+        tft.setTextColor(0x6d2d);
+        tft.setCursor(kx + 100 - ((pos > 9) ? ((pos > 99)? 12: 6) : 0) - ((len > 9) ? ((len > 99)? 12: 6) : 0), ky + 3);
+        tft.print(pos);
+        tft.print('/');
+        tft.print(len);
+        tft.setTextColor(0xffff);
+      }
+    }
+  #endif
     getKey();
     if(thiskey & 2){//down
       if(py < 3)

@@ -542,7 +542,7 @@ void resolveCollision(uint8_t n, uint8_t i){
 }
 
 void testSpriteCollision(){
-  byte n, i;
+  uint8_t n, i;
   int16_t x0, y0, x1, y1, newspeed;
   for(n = 0; n < 32; n++)
     sprite_table[n].collision = -1;
@@ -594,8 +594,8 @@ void testSpriteCollision(){
 }
 
 inline void clearSpriteScr(){
-  for(byte y = 0; y < 128; y ++)
-    for(byte x = 0; x < 64; x += 4){
+  for(uint8_t y = 0; y < 128; y ++)
+    for(uint8_t x = 0; x < 64; x += 4){
       if(*((uint32_t*)&sprite_screen[SCREEN_ADDR(x,y)]) > 0)
         line_is_draw[y] |= 1 + x / 32;
     }
@@ -603,8 +603,8 @@ inline void clearSpriteScr(){
 }
 
 inline void clearScr(uint8_t color){
-  for(byte y = 0; y < 128; y ++){
-    for(byte x = 0; x < 128; x++)
+  for(uint8_t y = 0; y < 128; y ++){
+    for(uint8_t x = 0; x < 128; x++)
       setPix(x, y, color);
   }
 }
@@ -928,7 +928,7 @@ void drawImgRLE(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
       return;
     }
     int16_t i = 0;
-    byte repeat = readMem(adr);
+    uint8_t repeat = readMem(adr);
     adr++;
     int8_t color1 = (readMem(adr) & 0xf0) >> 4;
     int8_t color2 = readMem(adr) & 0xf;
@@ -1020,7 +1020,7 @@ void drawImgS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
 void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     int16_t i = 0;
     uint8_t jx, jy;
-    byte repeat = readMem(adr);
+    uint8_t repeat = readMem(adr);
     adr++;
     int8_t color1 = (readMem(adr) & 0xf0) >> 4;
     int8_t color2 = readMem(adr) & 0xf;
@@ -1193,9 +1193,9 @@ inline void setPix2(uint16_t xi, uint16_t y, uint8_t c){
   }
 }
 
-byte getPix(byte x, byte y){
-  byte b = 0;
-  byte xi = x / 2;
+uint8_t getPix(uint8_t x, uint8_t y){
+  uint8_t b = 0;
+  uint8_t xi = x / 2;
   if(x >= 0 && x < 128 && y >= 0 && y < 128){
     if(x % 2 == 0)
       b = (screen[SCREEN_ADDR(xi, y)] & 0xf0) >> 4;
@@ -1380,7 +1380,7 @@ void tileDrawLine(uint8_t step, uint8_t direction){
     }
   }
 
-void charLineUp(byte n){
+void charLineUp(uint8_t n){
   clearScr(bgcolor);
   for(uint16_t i = 0; i < 336 - n * 21; i++){
     charArray[i] = charArray[i + n * 21];
@@ -1403,7 +1403,7 @@ int8_t getCharY(){
 void printc(char c, uint8_t fc, uint8_t bc){
   if(c == '\n'){
     fillRect(regx * 6, regy * 8, 127 - regx * 6, 8, bgcolor);
-    for(byte i = regx; i <= 21; i++){
+    for(uint8_t i = regx; i <= 21; i++){
       charArray[regx + regy * 21] = ' ';
     }
     regy++;
@@ -1414,7 +1414,7 @@ void printc(char c, uint8_t fc, uint8_t bc){
     }
   }
   else if(c == '\t'){
-    for(byte i = 0; i <= regx % 5; i++){
+    for(uint8_t i = 0; i <= regx % 5; i++){
       fillRect(regx * 6, regy * 8, 6, 8, bgcolor);
       charArray[regx + regy * 21] = ' ';
       regx++;
