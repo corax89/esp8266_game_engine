@@ -321,8 +321,9 @@ void setLedColor(uint16_t r5g6b5){
   r = ((((r5g6b5 >> 11) & 0x1F) * 527) + 23) >> 6;
   g = ((((r5g6b5 >> 5) & 0x3F) * 259) + 33) >> 6;
   b = (((r5g6b5 & 0x1F) * 527) + 23) >> 6;
-  leds[0] = CRGB( r, g, b);
-  FastLED.show();
+  //leds[0] = CRGB( r, g, b);
+  //FastLED.show();
+  myled.setRGB(r, g, b);
 }
 #endif
 

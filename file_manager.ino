@@ -24,7 +24,6 @@ uint8_t drawDialog(){
   drwLine(20, 90, 108, 90);
   drwLine(20, 30, 20, 90);
   drwLine(108, 30, 108, 90);
-  i = 0;
   x = 24;
   y = 32;
   for(i = 0; i < 43; i++){
@@ -198,9 +197,10 @@ void fileList(String path) {
   setColor(1);
   tft.fillScreen(0x0000);
  #ifdef ESPBOY
-  leds[0] = CRGB::Black;
-  FastLED.show();
-  FastLED.show();
+  myled.setRGB(0, 0, 0);
+  //leds[0] = CRGB::Black;
+  //FastLED.show();
+  //FastLED.show();
  #endif
   for(i = 0; i < 192; i++)
     mem[i + 1024 + 192] = pgm_read_byte_near(iconBin + i);

@@ -11,14 +11,18 @@
 #ifdef ESPBOY
   #include <Adafruit_MCP23017.h>
   #include <Adafruit_MCP4725.h>
-  #include <FastLED.h>
+  //#include <FastLED.h>
   #include "ESPboyLogo.h"
-  #include "ESPboy_keyboard.h"
+  #include "lib/ESPboy_keyboard.h"
+  #include "lib/ESPboy_keyboard.cpp"
+  #include "lib/ESPboy_LED.h"
+  #include "lib/ESPboy_LED.cpp"
   
   keyboardModule keybModule(1,1,7000);
   Adafruit_MCP23017 mcp;
   Adafruit_MCP4725 dac;
-  CRGB leds[1];
+  //CRGB leds[1];
+  ESPboyLED myled;
 #endif
 
 Coos <5, 0> coos;
@@ -402,10 +406,13 @@ void setup() {
      mcp.pinMode(i, INPUT);
      mcp.pullUp(i, HIGH);
   }
-  FastLED.addLeds<WS2812B, LEDPIN, RGB>(leds, 1);
-  leds[0] = CRGB::Black;
-  FastLED.show();
-  FastLED.show();
+  myled.begin();
+  myled.setRGB(0, 0, 0);
+  //FastLED.addLeds<WS2812B, LEDPIN, RGB>(leds, 1);
+  //leds[0] = CRGB::Black;
+  
+  //FastLED.show();
+  //FastLED.show();
   delay(50);
   if (keybModule.begin())
     Serial.println(F("\nESPboy keyboard module found"));
