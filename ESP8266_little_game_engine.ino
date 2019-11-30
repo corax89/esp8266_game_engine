@@ -11,7 +11,6 @@
 #ifdef ESPBOY
   #include <Adafruit_MCP23017.h>
   #include <Adafruit_MCP4725.h>
-  //#include <FastLED.h>
   #include "ESPboyLogo.h"
   #include "lib/ESPboy_keyboard.h"
   #include "lib/ESPboy_keyboard.cpp"
@@ -21,7 +20,6 @@
   keyboardModule keybModule(1,1,7000);
   Adafruit_MCP23017 mcp;
   Adafruit_MCP4725 dac;
-  //CRGB leds[1];
   ESPboyLED myled;
 #endif
 
@@ -41,8 +39,8 @@ uint8_t i2c_adress;
 uint8_t thiskey;
 char c;
 Ticker timer;
+int delay_rtttl;
 uint16_t cadr_count = 0;
-uint16_t rtttl_delay = 0;
 unsigned long timeF,timeR;
 uint16_t timeCpu = 0,timeGpu = 0,timeSpr = 0,cpuOPS = 0,cpuOPSD = 0;
 uint8_t fps, fileIsLoad;
@@ -298,8 +296,8 @@ void coos_cpu(void){
   while(1){
     COOS_DELAY(0);        // 1 ms
     timeR = millis();
-    cpuOPS += 2;
-    cpuRun(2000);
+    cpuOPS += 1;
+    cpuRun(1000);
     timeCpu += millis() - timeR;
   }
 }
@@ -307,7 +305,7 @@ void coos_cpu(void){
 void coos_screen(void){
    while(1){
     yield();
-    COOS_DELAY(45);        // 45 ms
+    COOS_DELAY(50);        // 50 ms
     timeR = millis();
     clearSpriteScr();
     redrawSprites();
@@ -328,11 +326,12 @@ void coos_screen(void){
   } 
 }
 
-void timer_tick(void){
+void ICACHE_RAM_ATTR timer_tick(void){
   for(int8_t i = 0; i < 8; i++){
     if(timers[i] >= 1)
       timers[i] --;
   }
+  updateRtttl();
 }
 
 void coos_key(void){   
@@ -347,12 +346,8 @@ void coos_key(void){
 
 void coos_rtttl(void){
   while(1){
-    rtttl_delay = playRtttl();
-    if(rtttl_delay){
-      COOS_DELAY(rtttl_delay);
-    }
-    else
-      COOS_DELAY(100);
+     delay_rtttl = playRtttl();
+     COOS_DELAY(delay_rtttl);
   }
 }
 
@@ -408,11 +403,6 @@ void setup() {
   }
   myled.begin();
   myled.setRGB(0, 0, 0);
-  //FastLED.addLeds<WS2812B, LEDPIN, RGB>(leds, 1);
-  //leds[0] = CRGB::Black;
-  
-  //FastLED.show();
-  //FastLED.show();
   delay(50);
   if (keybModule.begin())
     Serial.println(F("\nESPboy keyboard module found"));
@@ -500,7 +490,7 @@ void setup() {
   timer.attach(0.001, timer_tick);
   coos.register_task(coos_cpu); 
   coos.register_task(coos_screen);   
-  coos.register_task(coos_key); 
+  coos.register_task(coos_key);
   coos.register_task(coos_rtttl);
   coos.register_task(coos_info);
   coos.start();                     // init registered tasks

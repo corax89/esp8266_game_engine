@@ -198,9 +198,6 @@ void fileList(String path) {
   tft.fillScreen(0x0000);
  #ifdef ESPBOY
   myled.setRGB(0, 0, 0);
-  //leds[0] = CRGB::Black;
-  //FastLED.show();
-  //FastLED.show();
  #endif
   for(i = 0; i < 192; i++)
     mem[i + 1024 + 192] = pgm_read_byte_near(iconBin + i);
@@ -326,6 +323,8 @@ void fileList(String path) {
 
 void loadBinFromSPIFS(char fileName[]){
   int i;
+  for(i = 0; i < RAM_SIZE; i++)
+    mem[i] = 0;
   fs::File f = SPIFFS.open(fileName, "r");
   if(f.size() < RAM_SIZE)
     for(i = 0; i < f.size(); i++){
@@ -340,9 +339,11 @@ void loadBinFromSPIFS(char fileName[]){
 }
 
 void loadLgeFromSPIFS(char fileName[]){
-  int n,j = 0;
+  int n,j,i = 0;
   uint8_t b,l;
   int16_t length, position, point;
+  for(i = 0; i < RAM_SIZE; i++)
+    mem[i] = 0;
   fs::File f = SPIFFS.open(fileName, "r");
   if((char)f.read() == 'l' && (char)f.read() == 'g' && (char)f.read() == 'e'){
     l = (uint8_t)f.read();

@@ -31,6 +31,7 @@ struct Particle {
   int8_t speedx;
   int8_t speedy;
   int8_t color;
+  int8_t size;
 };
 
 struct Emitter { 
@@ -46,6 +47,9 @@ struct Emitter {
   int8_t speedx1;
   int8_t speedy1;
   int8_t color;
+  int8_t size;
+  int16_t width;
+  int16_t height;
 };
 
 struct Tile { 
@@ -221,6 +225,7 @@ void display_init(){
     sprite_table[i].flags = 2; //isonebit = 0 scrolled = 1 solid = 0
     sprite_table[i].gravity = 0;
     sprite_table[i].oncollision = 0;
+    sprite_table[i].onexitscreen = 0;
   }
   for(int8_t i = 0; i < 16; i++){
     palette[i] = bpalette[i];
@@ -228,6 +233,9 @@ void display_init(){
   }
   emitter.time = 0;
   emitter.timer = 0;
+  emitter.size;
+  emitter.width;
+  emitter.height;
   tile.adr = 0;
   for(int8_t i = 0; i < PARTICLE_COUNT; i++)
     particles[i].time = 0;
@@ -240,6 +248,7 @@ void display_init(){
 
 void pause(){
   uint8_t prevKey = 128;
+  noTone(SOUNDPIN);
   drawPause();
   redrawScreen();
   while(1){
@@ -304,6 +313,12 @@ void setEmitter(uint16_t time, int16_t dir, int16_t dir1, int16_t speed){
   emitter.speedy = (int8_t)((speed * getSin(dir)) >> 6);
   emitter.speedx1 = (int8_t)((speed * getCos(dir1)) >> 6);
   emitter.speedy1 = (int8_t)((speed * getSin(dir1)) >> 6);
+}
+
+void setEmitterSize(uint8_t width, uint8_t height, uint8_t size){
+  emitter.width = width << 1;
+  emitter.height = height << 1;
+  emitter.size = size;
 }
 
 void drawParticle(int16_t x, int16_t y, uint8_t color){
@@ -387,6 +402,46 @@ void setRedrawRect(uint8_t s, uint8_t e){
      line_is_draw[i] = 3;
 }
 
+void largeParticle(int16_t x0, int16_t y0, int16_t r, int8_t c) {
+  int16_t  x  = 0;
+  int16_t  dx = 1;
+  int16_t  dy = r+r;
+  int16_t  p  = -(r>>1);
+
+  // These are ordered to minimise coordinate changes in x or y
+  // drawPixel can then send fewer bounding box commands
+  drawSprPixel(c, x0, y0, r, 0);
+  drawSprPixel(c, x0, y0,  -r, 0);
+  drawSprPixel(c, x0, y0, 0, -r);
+  drawSprPixel(c, x0, y0, 0, r);
+
+  while(x<r){
+
+    if(p>=0) {
+      dy-=2;
+      p-=dy;
+      r--;
+    }
+
+    dx+=2;
+    p+=dx;
+
+    x++;
+
+    // These are ordered to minimise coordinate changes in x or y
+    // drawPixel can then send fewer bounding box commands
+    drawSprPixel(c, x0, y0, x, r);
+    drawSprPixel(c, x0, y0, -x, r);
+    drawSprPixel(c, x0, y0, -x, -r);
+    drawSprPixel(c, x0, y0, x, -r);
+
+    drawSprPixel(c, x0, y0, r, x);
+    drawSprPixel(c, x0, y0, -r, x);
+    drawSprPixel(c, x0, y0, -r, -x);
+    drawSprPixel(c, x0, y0, r, -x);
+  }
+}
+
 void redrawParticles(){
   int16_t i, n;
   uint8_t x, y;
@@ -399,9 +454,10 @@ void redrawParticles(){
       if(particles[n].time <= 0){
         i--;
         particles[n].time = emitter.timeparticle;
-        particles[n].x = emitter.x;
-        particles[n].y = emitter.y;
+        particles[n].x = emitter.x + random(emitter.width);
+        particles[n].y = emitter.y + random(emitter.height);
         particles[n].color = emitter.color;
+        particles[n].size = emitter.size;
         particles[n].speedx = randomD(emitter.speedx, emitter.speedx1);
         particles[n].speedy = randomD(emitter.speedy, emitter.speedy1);
         particles[n].gravity = emitter.gravity;
@@ -410,12 +466,18 @@ void redrawParticles(){
   }
   for(n = 0; n < PARTICLE_COUNT; n++)
     if(particles[n].time > 0){
-      x = ((particles[n].x >> 1) & 127) / 2;
+      x = ((particles[n].x >> 1) & 127);
       y = (particles[n].y >> 1) & 127;
-      if(particles[n].x & 1)
-        sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
-      else
-        sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) + ((particles[n].color & 0x0f) << 4);
+      if(particles[n].size){
+        largeParticle(x, y, particles[n].size, particles[n].color);
+      }
+      else{
+        x >> 1;
+        if(particles[n].x & 1)
+          sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
+        else
+          sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) + ((particles[n].color & 0x0f) << 4);
+      }
       line_is_draw[y] |= 1 + x / 32;
       particles[n].time -= 50;
       if(random(0,2)){

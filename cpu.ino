@@ -38,6 +38,8 @@ inline void fifoClear(){
   interruptFifo.position_read = 0;
   interruptFifo.position_write = 0;
   interruptFifo.size = 0;
+  for(int16_t i = 0; i < FIFO_MAX_SIZE; i++)
+    interruptFifo.el[i] = 0;
 }
 
 inline void pushInFifo(int16_t n){
@@ -114,7 +116,10 @@ void cpuInit(){
   carry = 0;
   zero = 0;
   negative = 0;
-  tft.setTextColor(palette[color]);
+  accum = 0;
+  saccum = 0;
+  dataName = 0;
+  setRtttlPlay(0);
 }
 
 void debug(){
@@ -321,15 +326,14 @@ void setLedColor(uint16_t r5g6b5){
   r = ((((r5g6b5 >> 11) & 0x1F) * 527) + 23) >> 6;
   g = ((((r5g6b5 >> 5) & 0x3F) * 259) + 33) >> 6;
   b = (((r5g6b5 & 0x1F) * 527) + 23) >> 6;
-  //leds[0] = CRGB( r, g, b);
-  //FastLED.show();
   myled.setRGB(r, g, b);
 }
 #endif
 
 inline void cpuRun(uint16_t n){
-  for(uint16_t i=0; i < n; i++)
+  for(uint16_t i=0; i < n; i++){
     cpuStep();
+  }
 }
 
 void cpuStep(){
@@ -493,6 +497,7 @@ void cpuStep(){
         case 0x50:
           //HLT       5000
           clearSpriteScr();
+          noTone(SOUNDPIN);
           fileList("/");
           break;
         case 0x51:
@@ -690,7 +695,7 @@ void cpuStep(){
           break;
         case 0x9A:
           // RET      9A 00
-          if(interrupt == 0){
+          if(!interrupt){
             pc = readInt(reg[0]);
             reg[0] += 2;
           }
@@ -1191,6 +1196,9 @@ void cpuStep(){
             else if((op2 & 0xf0) == 0x50)
               //регистр указывает на участок памяти, в котором расположены последовательно y2,x2,y1,x1
               reg[1] = distancepp(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            else if((op2 & 0xf0) == 0x60)
+              //регистр указывает на участок памяти, в котором расположены последовательно size,height,width
+              setEmitterSize(readInt(adr + 4), readInt(adr + 2), readInt(adr));
             break;
         case 0xD8:
           // SCROLL R,R   D8RR

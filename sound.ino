@@ -1,6 +1,6 @@
 #include "settings.h"
 #define NEXT_CHAR rtttl.startposition++; c = (char)readMem(rtttl.startposition); if(c == 0) return 0;
-#define NEXT_CHAR_IN_P rtttl.position++; c = (char)readMem(rtttl.startposition + rtttl.position); if(c == 0) return 0;
+#define NEXT_CHAR_IN_P rtttl.position++; c = (char)readMem(rtttl.startposition + rtttl.position); if(c == 0) return 50;
 #define OCTAVE_OFFSET 0
 
 int notes[] = { 0,
@@ -9,6 +9,8 @@ int notes[] = { 0,
   1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976,
   2093, 2217, 2349, 2489, 2637, 2794, 2960, 3136, 3322, 3520, 3729, 3951
 };
+
+unsigned int millisec = (unsigned int)millis();
 
 struct RTTTL {
   uint16_t address;
@@ -20,11 +22,14 @@ struct RTTTL {
   uint8_t default_oct;
   uint16_t bpm;
   uint32_t wholenote;
+  uint16_t this_tone;
+  int16_t delay;
+  uint8_t isPlayed;
 };
 
 struct PLAY_TONE {
   uint16_t freq;
-  uint16_t time;
+  int16_t time;
 };
 
 struct RTTTL rtttl;
@@ -85,6 +90,7 @@ uint8_t loadRtttl(){
   rtttl.wholenote = (60 * 1000 / rtttl.bpm) * 4;
   NEXT_CHAR
   rtttl.position = 0;
+  rtttl.delay = 0;
   return 1;
 }
 
@@ -98,38 +104,73 @@ void setRtttlLoop(uint8_t loop){
 }
 
 void setRtttlPlay(uint8_t play){
-  if(play == 0)
+  if(play == 0){
     rtttl.play = 0;
-  else if(play == 1)
+    noTone(SOUNDPIN);
+  }
+  else if(play == 1){
     rtttl.play = 1;
+  }
   else{
     rtttl.play = 0;
     rtttl.position = 0;
+    noTone(SOUNDPIN);
+  }
+  rtttl.isPlayed = 0;
+  rtttl.delay = 0;
+}
+
+inline void updateRtttl(){
+  if(rtttl.delay > 0)
+    rtttl.delay--;
+  if(play_tone.time > 0)
+    play_tone.time--;
+  //play single tone
+  if(play_tone.time > 0){
+    if(rtttl.delay <= 0){
+      tone(SOUNDPIN, play_tone.freq, 128);
+      rtttl.isPlayed = 0;
+      return;
+    }
+    if(play_tone.time & 1){
+      tone(SOUNDPIN, play_tone.freq, 128);
+      rtttl.isPlayed = 0;
+      return;
+    }
+  }
+  //player
+  if(rtttl.play == 0){
+    return;
+  }
+  if(rtttl.delay > 0){
+    if(!rtttl.isPlayed){
+      rtttl.isPlayed = 1;
+      tone(SOUNDPIN, rtttl.this_tone, rtttl.delay);
+    }
+    return;
   }
 }
 
-int16_t playRtttl(){
+int playRtttl(){
   uint16_t num;
   uint32_t duration;
   uint8_t note;
   uint8_t scale;
   char c;
-  //play single tone
-  if(play_tone.time){
-    tone(SOUNDPIN, play_tone.freq, play_tone.time);
-    num = play_tone.time;
-    play_tone.time = 0;
-    return num;
-  }
-  //player
-  if(rtttl.play == 0)
-    return 0;
   //first, get note duration, if available
+  noTone(SOUNDPIN);
+  if(rtttl.play == 0 || rtttl.startposition == 0){
+    return 50;
+  }
   num = 0;
   c = (char)readMem(rtttl.startposition + rtttl.position);
   if(c == 0){
-    if(!rtttl.loop)
+    if(!rtttl.loop){
       rtttl.play = 0;
+      rtttl.isPlayed = 0;
+      rtttl.this_tone = 0;
+      rtttl.delay = 0;
+    }
     rtttl.position = 0;
     c = (char)readMem(rtttl.startposition + rtttl.position);
   }
@@ -200,8 +241,14 @@ int16_t playRtttl(){
   if(c == ',')
     NEXT_CHAR_IN_P       // skip comma for next note (or we may be at the end)
   // now play the note
+  rtttl.delay = duration;
   if(note){
-    tone(SOUNDPIN, notes[(scale - 4) * 12 + note], duration);
+    rtttl.this_tone = notes[note];
+    tone(SOUNDPIN, rtttl.this_tone, rtttl.delay);
   }
+  else{
+    rtttl.this_tone = 0;
+  }
+  rtttl.isPlayed = 1;
   return duration;
 }
