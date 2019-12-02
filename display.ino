@@ -472,13 +472,13 @@ void redrawParticles(){
         largeParticle(x, y, particles[n].size, particles[n].color);
       }
       else{
-        x >> 1;
+        x = x >> 1;
         if(particles[n].x & 1)
           sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
         else
           sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) + ((particles[n].color & 0x0f) << 4);
+        line_is_draw[y] |= 1 + x / 32;
       }
-      line_is_draw[y] |= 1 + x / 32;
       particles[n].time -= 50;
       if(random(0,2)){
         particles[n].x += particles[n].speedx;
