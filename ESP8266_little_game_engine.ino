@@ -23,7 +23,7 @@
   ESPboyLED myled;
 #endif
 
-Coos <5, 0> coos;
+Coos <4, 0> coos;
 
 // Use hardware SPI
 TFT_eSPI tft = TFT_eSPI();
@@ -39,7 +39,7 @@ uint8_t i2c_adress;
 uint8_t thiskey;
 char c;
 Ticker timer;
-int delay_rtttl;
+int delay_rtttl = 50;
 uint16_t cadr_count = 0;
 unsigned long timeF,timeR;
 uint16_t timeCpu = 0,timeGpu = 0,timeSpr = 0,cpuOPS = 0,cpuOPSD = 0;
@@ -299,6 +299,8 @@ void coos_cpu(void){
     cpuOPS += 1;
     cpuRun(1000);
     timeCpu += millis() - timeR;
+    if(delay_rtttl <= 0)
+      delay_rtttl = playRtttl();
   }
 }
 
@@ -331,6 +333,7 @@ void ICACHE_RAM_ATTR timer_tick(void){
     if(timers[i] >= 1)
       timers[i] --;
   }
+  delay_rtttl--;
   updateRtttl();
 }
 
@@ -341,13 +344,6 @@ void coos_key(void){
     if(thiskey & 128)
       pause();
     changeSettings();
-  }
-}
-
-void coos_rtttl(void){
-  while(1){
-     delay_rtttl = playRtttl();
-     COOS_DELAY(delay_rtttl);
   }
 }
 
@@ -491,7 +487,6 @@ void setup() {
   coos.register_task(coos_cpu); 
   coos.register_task(coos_screen);   
   coos.register_task(coos_key);
-  coos.register_task(coos_rtttl);
   coos.register_task(coos_info);
   coos.start();                     // init registered tasks
 }
