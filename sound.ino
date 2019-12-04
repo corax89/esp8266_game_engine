@@ -250,5 +250,5 @@ int playRtttl(){
     rtttl.this_tone = 0;
   }
   rtttl.isPlayed = 1;
-  return duration;
+  return (duration > 8)?duration - 8 : 0;
 }
