@@ -26,7 +26,7 @@ uint8_t drawDialog(){
   drwLine(108, 30, 108, 90);
   x = 24;
   y = 32;
-  for(i = 0; i < 43; i++){
+  for(i = 0; i < 37; i++){
     putchar(txt[i], x, y);
     x += 6;
     if(x > 102){
@@ -215,7 +215,7 @@ void fileList(String path) {
     getKey();
     while(thiskey == 0){  
       clearScr(0);
-      putString("No files, please upload files", 2);
+      putString((char*)"No files, please upload files", 2);
       redrawScreen();
       getKey();
       delay(100);

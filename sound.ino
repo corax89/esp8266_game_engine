@@ -243,7 +243,7 @@ int playRtttl(){
   // now play the note
   rtttl.delay = duration;
   if(note){
-    rtttl.this_tone = notes[note];
+    rtttl.this_tone = notes[note + ((scale - 4) * 12)];
     tone(SOUNDPIN, rtttl.this_tone, rtttl.delay);
   }
   else{
