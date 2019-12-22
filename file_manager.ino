@@ -200,7 +200,8 @@ void fileList(String path) {
   myled.setRGB(0, 0, 0);
  #endif
   for(i = 0; i < 192; i++)
-    mem[i + 1024 + 192] = pgm_read_byte_near(iconBin + i);
+    writeMem(i + 1024 + 192, pgm_read_byte_near(iconBin + i));
+    //mem[i + 1024 + 192] = pgm_read_byte_near(iconBin + i);
   setImageSize(1);
   while (dir.next()) {
     fs::File entry = dir.openFile("r");
@@ -256,7 +257,8 @@ void fileList(String path) {
             entry.seek(5, SeekSet);
             for(i = 0; i < 192; i++)
               if(entry.available())
-                mem[i + 1024] = (uint8_t)entry.read(); 
+                writeMem(i + 1024, (uint8_t)entry.read());
+                //mem[i + 1024] = (uint8_t)entry.read(); 
             drawImg(1024, 0, lst * 17 - 16, 24, 16);
           }
           else
@@ -294,8 +296,6 @@ void fileList(String path) {
         i++;
       i++;
       setLoadedFileName(thisF);
-      for(int16_t i = 0; i < RAM_SIZE; i++)
-        mem[i] = 0;
       if(thisF[i] == 'b' && thisF[i + 1] == 'i' && thisF[i + 2] == 'n')
         loadBinFromSPIFS(thisF);
       else if(thisF[i] == 'l' && thisF[i + 1] == 'g' && thisF[i + 2] == 'e')
@@ -324,11 +324,13 @@ void fileList(String path) {
 void loadBinFromSPIFS(char fileName[]){
   int i;
   for(i = 0; i < RAM_SIZE; i++)
-    mem[i] = 0;
+    writeMem(i, 0);
+    //mem[i] = 0;
   fs::File f = SPIFFS.open(fileName, "r");
   if(f.size() < RAM_SIZE)
     for(i = 0; i < f.size(); i++){
-      mem[i] = (uint8_t)f.read();
+      writeMem(i, (uint8_t)f.read());
+      //mem[i] = (uint8_t)f.read();
     }
   Serial.print(F("loaded "));
   Serial.print(i);
@@ -343,7 +345,8 @@ void loadLgeFromSPIFS(char fileName[]){
   uint8_t b,l;
   int16_t length, position, point;
   for(i = 0; i < RAM_SIZE; i++)
-    mem[i] = 0;
+    writeMem(n, 0);
+    //mem[i] = 0;
   fs::File f = SPIFFS.open(fileName, "r");
   if((char)f.read() == 'l' && (char)f.read() == 'g' && (char)f.read() == 'e'){
     l = (uint8_t)f.read();
@@ -361,7 +364,8 @@ void loadLgeFromSPIFS(char fileName[]){
       length = ((b & 127) << 8) + (uint8_t)f.read();
       for( j = 0; j < length; j ++){
         if(n < RAM_SIZE)
-          mem[n] = (uint8_t)f.read();
+          writeMem(n, (uint8_t)f.read());
+          //mem[n] = (uint8_t)f.read();
         n++;
       }
     }
@@ -371,7 +375,8 @@ void loadLgeFromSPIFS(char fileName[]){
       point = n - position;
       for( j = 0; j < length; j ++){
         if(n < RAM_SIZE && point + j < RAM_SIZE)
-          mem[n] = mem[point + j];
+          writeMem(n, readMem(point + j));
+          //mem[n] = mem[point + j];
         n++;
       }
     }

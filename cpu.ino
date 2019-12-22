@@ -145,35 +145,6 @@ void debug(){
   Serial.println(interruptFifo.size);
 }
 
-inline void writeInt(uint16_t adr, int16_t n){
-  int8_t *nPtr;
-  nPtr = (int8_t*)&n;
-  writeMem(adr, *nPtr);
-  nPtr++;
-  adr++;
-  writeMem(adr, *nPtr);
-}
-
-inline int16_t readInt(uint16_t adr){
-  int16_t n;
-  int8_t *nPtr;
-  nPtr = (int8_t*)&n;
-  *nPtr = readMem(adr);
-  nPtr++;
-  adr++;
-  *nPtr = readMem(adr);
-  return n;
-}
-
-inline void writeMem(uint16_t adr, int16_t n){
-  if(adr < RAM_SIZE)
-    mem[adr] = n;
-}
-
-inline uint8_t readMem(uint16_t adr){
-  return (adr < RAM_SIZE) ? mem[adr] : 0;
-}
-
 inline void setRedraw(){
   redraw = 1;
 }
@@ -199,11 +170,11 @@ int16_t isqrt(int16_t n) {
   }
 }
 
-int16_t distancepp(int16_t x1, int16_t y1, int16_t x2, int16_t y2){
+inline int16_t distancepp(int16_t x1, int16_t y1, int16_t x2, int16_t y2){
   return isqrt((x2 - x1)*(x2 - x1) + (y2-y1)*(y2-y1));
 }
 
-void setDataName(uint16_t address){
+inline void setDataName(uint16_t address){
   dataName = address;
 }
 
@@ -318,6 +289,12 @@ int16_t fixed_sin(int x) {
 
 inline int16_t fixed_cos(int16_t g){
   return fixed_sin(g+90);
+}
+
+inline void copyMem(uint16_t to_adr, uint16_t from_adr, uint16_t num_bytes) {
+  for (uint16_t i = 0; i < num_bytes; i++) {
+    writeMem(to_adr++, readMem(from_adr++));
+  }
 }
 
 #ifdef ESPBOY
@@ -946,6 +923,11 @@ void cpuStep(){
           else if (reg2 == 0x30) {
             reg[reg1] = fixed_cos(reg[reg1]);
           }
+          // MEMCPY R    C3 4R
+          else if (reg2 == 0x40) {
+            adr = reg[reg1];
+            copyMem(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+          }
           break;
         case 0xC4:
           // MULF R,R   C4 RR
@@ -1165,6 +1147,12 @@ void cpuStep(){
                 reg1 = op2 & 0xf;
                 adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно h, w, y, x, адрес
                 drawImageBit(readInt(adr + 8), readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+                break;
+              case 0xB0:
+                // SETCLIP R D4BR
+                reg1 = op2 & 0xf;
+                adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно y1, x1, y0, x0
+                setClip(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
                 break;
             }
             break;

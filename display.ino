@@ -106,6 +106,10 @@ int8_t regx = 0;
 int8_t regy = 0;
 int8_t isDrawKeyboard = 0;
 int8_t keyboardPos = 0;
+uint8_t clipx0 = 0;
+uint8_t clipx1 = 128;
+uint8_t clipy0 = 0;
+uint8_t clipy1 = 128;
 
 #pragma GCC optimize ("-O2")
 #pragma GCC push_options
@@ -185,9 +189,9 @@ void display_init(){
   }
   emitter.time = 0;
   emitter.timer = 0;
-  emitter.size;
-  emitter.width;
-  emitter.height;
+  emitter.size = 0;
+  emitter.width = 0;
+  emitter.height = 0;
   tile.adr = 0;
   for(int8_t i = 0; i < PARTICLE_COUNT; i++)
     particles[i].time = 0;
@@ -1184,10 +1188,17 @@ void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     }
   }
 
+inline void setClip(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
+  clipx0 = (x0 >= 0 && x0 < 127) ? x0 : 0;
+  clipy0 = (y0 >= 0 && y0 < 127) ? y0 : 0;
+  clipx1 = (x0 + x1 > 0 && x0 + x1 <= 127) ? x0 + x1 : 128;
+  clipy1 = (y0 + y1 > 0 && y0 + y1 <= 127) ? y0 + y1 : 128;
+}
+
 inline void setPix(uint16_t x, uint16_t y, uint8_t c){
-  uint8_t xi = x / 2;
-  uint8_t b;
-  if(x < 128 && y < 128){
+  uint8_t xi, b;
+  if(x < clipx1 && x >= clipx0 && y < clipy1 && y >= clipy0){
+    xi = x / 2;
     b = screen[SCREEN_ADDR(xi, y)];
     if(x & 1)
       screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0xf0) + c;
@@ -1198,19 +1209,11 @@ inline void setPix(uint16_t x, uint16_t y, uint8_t c){
   }
 }
 
-inline void setPix2(uint16_t xi, uint16_t y, uint8_t c){
-  if(xi < 64 && y < 128){
-    if (screen[SCREEN_ADDR(xi, y)] != c) {
-      screen[SCREEN_ADDR(xi, y)] = c;
-      line_is_draw[y] |= 1 + xi /32;
-    }
-  }
-}
-
 uint8_t getPix(uint8_t x, uint8_t y){
   uint8_t b = 0;
-  uint8_t xi = x / 2;
+  uint8_t xi;
   if(x >= 0 && x < 128 && y >= 0 && y < 128){
+    xi = x / 2;
     if(x % 2 == 0)
       b = (screen[SCREEN_ADDR(xi, y)] & 0xf0) >> 4;
     else
