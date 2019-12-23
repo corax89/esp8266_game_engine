@@ -110,6 +110,7 @@ uint8_t clipx0 = 0;
 uint8_t clipx1 = 128;
 uint8_t clipy0 = 0;
 uint8_t clipy1 = 128;
+uint8_t isClip = 0;
 
 #pragma GCC optimize ("-O2")
 #pragma GCC push_options
@@ -192,6 +193,10 @@ void display_init(){
   emitter.size = 0;
   emitter.width = 0;
   emitter.height = 0;
+  uint8_t clipx0 = 0;
+  uint8_t clipx1 = 128;
+  uint8_t clipy0 = 0;
+  uint8_t clipy1 = 128;
   tile.adr = 0;
   for(int8_t i = 0; i < PARTICLE_COUNT; i++)
     particles[i].time = 0;
@@ -1193,19 +1198,37 @@ inline void setClip(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
   clipy0 = (y0 >= 0 && y0 < 127) ? y0 : 0;
   clipx1 = (x0 + x1 > 0 && x0 + x1 <= 127) ? x0 + x1 : 128;
   clipy1 = (y0 + y1 > 0 && y0 + y1 <= 127) ? y0 + y1 : 128;
+  if(clipx0 == 0 && clipy0 == 0 && clipx1 == 128 && clipy1 == 128)
+    isClip = 0;
+  else
+    isClip = 1;
 }
 
 inline void setPix(uint16_t x, uint16_t y, uint8_t c){
   uint8_t xi, b;
-  if(x < clipx1 && x >= clipx0 && y < clipy1 && y >= clipy0){
-    xi = x / 2;
-    b = screen[SCREEN_ADDR(xi, y)];
-    if(x & 1)
-      screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0xf0) + c;
-    else
-      screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0x0f) + ( c << 4);
-    if(b != screen[SCREEN_ADDR(xi, y)])
-      line_is_draw[y] |= 1 + x / 64;
+  if(isClip){
+    if(x < clipx1 && x >= clipx0 && y < clipy1 && y >= clipy0){
+      xi = x / 2;
+      b = screen[SCREEN_ADDR(xi, y)];
+      if(x & 1)
+        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0xf0) + c;
+      else
+        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0x0f) + ( c << 4);
+      if(b != screen[SCREEN_ADDR(xi, y)])
+        line_is_draw[y] |= 1 + x / 64;
+    }
+  }
+  else{
+    if(x < 128 && y < 128){
+      xi = x / 2;
+      b = screen[SCREEN_ADDR(xi, y)];
+      if(x & 1)
+        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0xf0) + c;
+      else
+        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0x0f) + ( c << 4);
+      if(b != screen[SCREEN_ADDR(xi, y)])
+        line_is_draw[y] |= 1 + x / 64;
+    }
   }
 }
 
@@ -1239,70 +1262,70 @@ void changePalette(uint8_t n, uint16_t c){
 void scrollScreen(uint8_t step, uint8_t direction){
     uint8_t bufPixel;
     if(direction == 2){
-      for(uint8_t y = 0; y < 128; y++){
-        bufPixel = screen[SCREEN_ADDR(0, y)];
-        for(uint8_t x = 1; x < 64; x++){
+      for(uint8_t y = clipy0; y < clipy1; y++){
+        bufPixel = screen[SCREEN_ADDR(clipx0 / 2, y)];
+        for(uint8_t x = clipx0 / 2 + 1; x < clipx1 / 2; x++){
           if(screen[SCREEN_ADDR(x - 1, y)] != screen[SCREEN_ADDR(x,y)])
             line_is_draw[y] |= 1 + x / 32;
           screen[SCREEN_ADDR(x - 1,  y)] = screen[SCREEN_ADDR(x,y)];
         }
-        if(screen[SCREEN_ADDR(63, y)] != bufPixel)
+        if(screen[SCREEN_ADDR((clipx1 - 1) / 2, y)] != bufPixel)
             line_is_draw[y] |= 1;
-        screen[SCREEN_ADDR(63, y)] = bufPixel;
+        screen[SCREEN_ADDR((clipx1 - 1) / 2, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].x -= 8;
     }
     else if(direction == 1){
-      for(uint8_t x = 0; x < 64; x++){
-        bufPixel = screen[SCREEN_ADDR(x, 0)];
-        for(uint8_t y = 1; y < 128; y++){
-          if(screen[SCREEN_ADDR(x, y-1)] != screen[SCREEN_ADDR(x,y)])
+      for(uint8_t x = clipx0 / 2; x < clipx1 / 2; x++){
+        bufPixel = screen[SCREEN_ADDR(x, clipy0)];
+        for(uint8_t y = clipy0 + 1; y < clipy1; y++){
+          if(screen[SCREEN_ADDR(x, y - 1)] != screen[SCREEN_ADDR(x,y)])
             line_is_draw[y] |= 1 + x / 32;
           screen[SCREEN_ADDR(x, y - 1)] = screen[SCREEN_ADDR(x,y)];
         }
-        if(screen[SCREEN_ADDR(x, 127)] != bufPixel)
-            line_is_draw[127] |= 2;
-        screen[SCREEN_ADDR(x, 127)] = bufPixel;
+        if(screen[SCREEN_ADDR(x, clipy1 - 1)] != bufPixel)
+            line_is_draw[clipy1 - 1] |= 2;
+        screen[SCREEN_ADDR(x, clipy1 - 1)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].y -= 4;
     }
     else if(direction == 0){
-      for(uint8_t y = 0; y < 128; y++){
-        bufPixel = screen[SCREEN_ADDR(63, y)];
-        for(uint8_t x = 63; x > 0; x--){
+      for(uint8_t y = clipy0; y < clipy1; y++){
+        bufPixel = screen[SCREEN_ADDR((clipx1 - 1) / 2, y)];
+        for(uint8_t x = (clipx1 - 1) / 2; x > clipx0 / 2; x--){
           if(screen[SCREEN_ADDR(x,y)] != screen[SCREEN_ADDR(x - 1, y)])
             line_is_draw[y] |= 1 + x / 32;
           screen[SCREEN_ADDR(x,y)] = screen[SCREEN_ADDR(x - 1, y)];
         }
-        if(screen[SCREEN_ADDR(0, y)] != bufPixel)
+        if(screen[SCREEN_ADDR(clipx0 / 2, y)] != bufPixel)
             line_is_draw[y] |= 1;
-        screen[SCREEN_ADDR(0, y)] = bufPixel;
+        screen[SCREEN_ADDR(clipx0 / 2, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].x += 8;
     }
     else {
-      for(uint8_t x = 0; x < 64; x++){
-        bufPixel = screen[SCREEN_ADDR(x, 127)];
-        for(uint8_t y = 127; y > 0; y--){
+      for(uint8_t x = clipx0 / 2; x < clipx1 / 2; x++){
+        bufPixel = screen[SCREEN_ADDR(x, (clipx1 - 1) / 2)];
+        for(uint8_t y = clipy1 - 1; y > clipy0; y--){
           if(screen[SCREEN_ADDR(x,y)] != screen[SCREEN_ADDR(x, y - 1)])
             line_is_draw[y] |= 1 + x / 32;
           screen[SCREEN_ADDR(x,y)] = screen[SCREEN_ADDR(x, y - 1)];
         }
-        if(screen[SCREEN_ADDR(x, 0)] != bufPixel)
+        if(screen[SCREEN_ADDR(x, clipy0)] != bufPixel)
             line_is_draw[0] |= 1 + x / 32;
-        screen[SCREEN_ADDR(x, 0)] = bufPixel;
+        screen[SCREEN_ADDR(x, clipy0)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
         if(SPRITE_IS_SCROLLED(n))
           sprite_table[n].y += 4;
     }
-    if(tile.adr > 0)
+    if(tile.adr > 0 && !isClip)
       tileDrawLine(step, direction);
 }
 
