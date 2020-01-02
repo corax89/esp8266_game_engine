@@ -24,7 +24,7 @@ keyboardModule::keyboardModule(uint8_t clickState, uint8_t backlitState, uint32_
 
 
 uint8_t keyboardModule::begin(){
-  Wire.begin();    
+  Wire.begin();
   Wire.beginTransmission(0x27); //check for MCP23017Keyboard at address 0x27
   if (!Wire.endTransmission()) initFlag = 1;
   else initFlag =0;
@@ -32,16 +32,16 @@ uint8_t keyboardModule::begin(){
   for (uint8_t i = 0; i < 7; i++){
     mcpKeyboard.pinMode(i, OUTPUT);
     mcpKeyboard.digitalWrite(i, HIGH);}
-  for (uint8_t i = 0; i < 6; i++){
+  for (uint8_t i = 0; i < 5; i++){
     mcpKeyboard.pinMode(i+8, INPUT);
-    mcpKeyboard.pullUp(i+8, HIGH);} 
-    
+    mcpKeyboard.pullUp(i+8, HIGH);}
+
   mcpKeyboard.pinMode(7, OUTPUT);
-  setBacklitState(backlitFlag);  
+  setBacklitState(backlitFlag);
   return (initFlag);
 }
 
-  
+
 void keyboardModule::scanKeyboard(){
    for (uint8_t row = 0; row < 8; row++){
      mcpKeyboard.digitalWrite(row, LOW);
@@ -53,7 +53,7 @@ void keyboardModule::scanKeyboard(){
        }
      mcpKeyboard.digitalWrite(row, HIGH);
      yield();
-   } 
+   }
 }
 
 
@@ -80,7 +80,7 @@ wchar_t keyboardModule::getPressedKey (){
       if (currentLayout == keybNorm )
         pressedKey = pgm_read_word_near(&keybCurrent[keybShift][rowKey][colKey]);
       if (currentLayout == keybShift)
-        pressedKey = pgm_read_word_near(&keybCurrent[keybNorm][rowKey][colKey]); 
+        pressedKey = pgm_read_word_near(&keybCurrent[keybNorm][rowKey][colKey]);
       break;
     case '^':
       while (pressedKey == '^') scanKeyboard();
@@ -93,11 +93,11 @@ wchar_t keyboardModule::getPressedKey (){
     case '&':
       if (clickFlag == 1) clickFlag = 0;
       else clickFlag = 1;
-      while (keysUnpressed());     
+      while (keysUnpressed());
       break;
    }
    if (pressedKey && clickFlag) tone(SOUNDPIN, 400, 30);
-   if (pressedKey == '|' || pressedKey == '~' || pressedKey == '^' || pressedKey == '&' || pressedKey == '`') 
+   if (pressedKey == '|' || pressedKey == '~' || pressedKey == '^' || pressedKey == '&' || pressedKey == '`')
      pressedKey = 0;
    return pressedKey;
 }

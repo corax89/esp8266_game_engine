@@ -101,7 +101,7 @@ struct sprite sprite_table[32] __attribute__ ((aligned));
 struct Particle particles[PARTICLE_COUNT] __attribute__ ((aligned));
 struct Emitter emitter;
 struct Tile tile;
-int8_t imageSize = 1;
+int16_t imageSize = 1;
 int8_t regx = 0;
 int8_t regy = 0;
 int8_t isDrawKeyboard = 0;
@@ -632,7 +632,7 @@ inline void clearScr(uint8_t color){
   }
 }
 
-void setImageSize(uint8_t size){
+void setImageSize(uint16_t size){
   imageSize = size;
 }
 
@@ -1017,27 +1017,26 @@ void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     }
 }
 
-void drawImgS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
-  uint8_t p, jx, jy, color, s;
+void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
+  uint32_t p, x2, y2, hx2, color, s;
   s = imageSize;
-  for(int16_t yi = 0; yi < h; yi++)
-    for(int16_t xi = 0; xi < w; xi++){
-      p = readMem(a);
-      color = (p & 0xf0) >> 4;
-      if(color > 0){
-        for(jx = 0; jx < s; jx++)
-              for(jy = 0; jy < s; jy++)
-                setPix(xi * s + x + jx, yi * s + y + jy, color);
+  for(int32_t yi = 0; yi < ((h * s) >> MULTIPLY_FP_RESOLUTION_BITS); yi++){
+    y2 = ((yi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+    for(int32_t xi = 0; xi < ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS); xi++){
+      x2 = ((xi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+      hx2 = x2 / 2;
+      if(x2 & 1){
+        p = readMem(a + hx2 + (y2 * w) / 2);
+        color = (p & 0x0f);
       }
-      xi++;
-      color = p & 0x0f;
-      if(color > 0){
-        for(jx = 0; jx < s; jx++)
-              for(jy = 0; jy < s; jy++)
-                setPix(xi * s + x + jx, yi * s + y + jy, color);
+      else{
+        p = readMem(a + hx2 + (y2 * w) / 2);
+        color = (p & 0xf0) >> 4;
       }
-      a++;
+      if(color)
+          setPix(x + xi, y + yi, color);
     }
+  }
 }
 
 void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
@@ -1047,17 +1046,18 @@ void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     adr++;
     int8_t color1 = (readMem(adr) & 0xf0) >> 4;
     int8_t color2 = readMem(adr) & 0xf;
+    uint8_t s = imageSize >> MULTIPLY_FP_RESOLUTION_BITS;
     while(i < w * h){
       if(repeat > 0x81){
         if(color1 > 0){
-          for(jx = 0; jx < imageSize; jx++)
-            for(jy = 0; jy < imageSize; jy++)
-              setPix(x1 + (i % w) * imageSize + jx, y1 + i / w * imageSize + jy, color1);
+          for(jx = 0; jx < s; jx++)
+            for(jy = 0; jy < s; jy++)
+              setPix(x1 + (i % w) * s + jx, y1 + i / w * s + jy, color1);
         }
         if(color2 > 0){
-          for(jx = 0; jx < imageSize; jx++)
-            for(jy = 0; jy < imageSize; jy++)
-              setPix(x1 + (i % w) * imageSize + imageSize + jx, y1 + i / w * imageSize + jy, color2);
+          for(jx = 0; jx < s; jx++)
+            for(jy = 0; jy < s; jy++)
+              setPix(x1 + (i % w) * s + s + jx, y1 + i / w * s + jy, color2);
         }
         i += 2;
         adr++;
@@ -1073,14 +1073,14 @@ void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
       }
       else if(repeat > 0){
         if(color1 > 0){
-          for(jx = 0; jx < imageSize; jx++)
-                for(jy = 0; jy < imageSize; jy++)
-                  setPix(x1 + (i % w) * imageSize + jx, y1 + i / w * imageSize + jy, color1);
+          for(jx = 0; jx < s; jx++)
+                for(jy = 0; jy < s; jy++)
+                  setPix(x1 + (i % w) * s + jx, y1 + i / w * s + jy, color1);
         }
         if(color2 > 0){
-          for(jx = 0; jx < imageSize; jx++)
-                for(jy = 0; jy < imageSize; jy++)
-                  setPix(x1 + (i % w) * imageSize + imageSize + jx, y1 + i / w * imageSize + jy, color2);
+          for(jx = 0; jx < s; jx++)
+                for(jy = 0; jy < s; jy++)
+                  setPix(x1 + (i % w) * s + s + jx, y1 + i / w * s + jy, color2);
         }
         i += 2;
         repeat--;
@@ -1095,28 +1095,20 @@ void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     }
   }
 
-void drawImageBitS(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
-  int16_t i = 0;
-  uint8_t ibit, jx, jy;
-  for(int16_t y = 0; y < h; y++)
-    for(int16_t x = 0; x < w; x++){
-      if(i % 8 == 0){
-        ibit = readMem(adr);
-        adr++;
-      }
-      if(ibit & 0x80){
-        for(jx = 0; jx < imageSize; jx++)
-          for(jy = 0; jy < imageSize; jy++)
-          setPix(x1 + x * imageSize + jx, y1 + y * imageSize + jy, color);
-      } 
-      else{
-        for(jx = 0; jx < imageSize; jx++)
-          for(jy = 0; jy < imageSize; jy++)
-            setPix(x1 + x * imageSize + jx, y1 + y * imageSize + jy, bgcolor);
-      } 
-      ibit = ibit << 1;
-      i++;
+void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
+  uint32_t p, x2, y2, hx2, s;
+  s = imageSize;
+  for(int32_t yi = 0; yi < ((h * s) >> MULTIPLY_FP_RESOLUTION_BITS); yi++){
+    y2 = ((yi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+    for(int32_t xi = 0; xi < ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS); xi++){
+      x2 = ((xi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+      p = readMem(a + (x2 + y2 * w) / 8);
+      if(p & (1 << (7 - ((x2 + y2 * w) & 7))))
+          setPix(x + xi, y + yi, color);
+      else
+          setPix(x + xi, y + yi, bgcolor);
     }
+  }
 }
 
 void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8_t height){

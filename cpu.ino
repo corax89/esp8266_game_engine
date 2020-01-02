@@ -1116,7 +1116,7 @@ void cpuStep(){
               case 0x50:
                // ISIZE      D45R
                 reg1 = op2 & 0xf;
-                setImageSize(reg[reg1] & 31);
+                setImageSize(reg[reg1]);
                 break;
               case 0x60:
                 // DLINE      D46R

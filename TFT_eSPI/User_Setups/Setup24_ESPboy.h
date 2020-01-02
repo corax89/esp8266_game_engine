@@ -12,4 +12,4 @@
 #define TFT_DC   PIN_D8
 #define TFT_RST  -1
 #define LOAD_GLCD
-#define SPI_FREQUENCY  27000000
+#define SPI_FREQUENCY  39000000
