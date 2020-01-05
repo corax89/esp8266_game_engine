@@ -287,6 +287,7 @@ void drawParticle(int16_t x, int16_t y, uint8_t color){
   emitter.y = y << 1;
   emitter.color = color;
   emitter.timer = emitter.time;
+  updateEmitter();
 }
 
 void setScreenResolution(uint16_t nw, uint16_t nh){
@@ -363,21 +364,20 @@ void setRedrawRect(uint8_t s, uint8_t e){
      line_is_draw[i] = 3;
 }
 
+inline void drawSprFHLine(int16_t x1, int16_t x2, int16_t y, int8_t c){
+  for(int16_t  i = x1; i <= x2; i++)
+    drawSprPixel(c, i, y, 0, 0);
+}
+
 void largeParticle(int16_t x0, int16_t y0, int16_t r, int8_t c) {
   int16_t  x  = 0;
   int16_t  dx = 1;
   int16_t  dy = r+r;
   int16_t  p  = -(r>>1);
 
-  // These are ordered to minimise coordinate changes in x or y
-  // drawPixel can then send fewer bounding box commands
-  drawSprPixel(c, x0, y0, r, 0);
-  drawSprPixel(c, x0, y0,  -r, 0);
-  drawSprPixel(c, x0, y0, 0, -r);
-  drawSprPixel(c, x0, y0, 0, r);
+  drawSprFHLine(x0 - r, x0 + r, y0, c);
 
   while(x<r){
-
     if(p>=0) {
       dy-=2;
       p-=dy;
@@ -389,26 +389,16 @@ void largeParticle(int16_t x0, int16_t y0, int16_t r, int8_t c) {
 
     x++;
 
-    // These are ordered to minimise coordinate changes in x or y
-    // drawPixel can then send fewer bounding box commands
-    drawSprPixel(c, x0, y0, x, r);
-    drawSprPixel(c, x0, y0, -x, r);
-    drawSprPixel(c, x0, y0, -x, -r);
-    drawSprPixel(c, x0, y0, x, -r);
-
-    drawSprPixel(c, x0, y0, r, x);
-    drawSprPixel(c, x0, y0, -r, x);
-    drawSprPixel(c, x0, y0, -r, -x);
-    drawSprPixel(c, x0, y0, r, -x);
+    drawSprFHLine(x0 - r, x0 + r, y0 + x, c);
+    drawSprFHLine(x0 - r, x0 + r, y0 - x, c);
+    drawSprFHLine(x0 - x, x0 + x, y0 + r, c);
+    drawSprFHLine(x0 - x, x0 + x, y0 - r, c);
   }
 }
 
-void redrawParticles(){
+void updateEmitter(){
   int16_t i, n;
-  uint8_t x, y;
-  if(emitter.timer > 0){
-    emitter.timer -= 50;
-    i = emitter.count;
+  i = emitter.count;
     for(n = 0; n < PARTICLE_COUNT; n++){
       if(i == 0)
         break;
@@ -424,6 +414,14 @@ void redrawParticles(){
         particles[n].gravity = emitter.gravity;
       }
     }
+}
+
+void redrawParticles(){
+  int16_t n;
+  uint8_t x, y;
+  if(emitter.timer > 0){
+    emitter.timer -= 50;
+    updateEmitter();
   }
   for(n = 0; n < PARTICLE_COUNT; n++)
     if(particles[n].time > 0){
@@ -924,7 +922,7 @@ void drawSpr(int8_t n, int16_t x, int16_t y){
 }
 
 void drawImg(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
-  if(imageSize > 1){
+  if(!(imageSize <= 1 || imageSize == (1 << MULTIPLY_FP_RESOLUTION_BITS))){
     drawImgS(a, x, y, w, h);
     return;
   }
@@ -946,7 +944,7 @@ void drawImg(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
 }
 
 void drawImgRLE(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
-    if(imageSize > 1){
+    if(!(imageSize <= 1 || imageSize == (1 << MULTIPLY_FP_RESOLUTION_BITS))){
       drawImgRLES(adr, x1, y1, w, h);
       return;
     }
@@ -996,7 +994,7 @@ void drawImgRLE(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
   }
 
 void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
-  if(imageSize > 1){
+  if(!(imageSize <= 1 || imageSize == (1 << MULTIPLY_FP_RESOLUTION_BITS))){
     drawImageBitS(adr, x1, y1, w, h);
     return;
   }

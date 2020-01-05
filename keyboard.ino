@@ -43,23 +43,17 @@ void scani2c(){
 
 #ifdef ESPBOY
 void getKey(){
+  uint8_t keyread;
   thiskey = 0;
-  if(!mcp.digitalRead(0))
-     thiskey |= 4; 
-  if(!mcp.digitalRead(1))
-     thiskey |= 1;
-  if(!mcp.digitalRead(2))
-     thiskey |= 2;
-  if(!mcp.digitalRead(3))
-     thiskey |= 8;
-  if(!mcp.digitalRead(4))
-     thiskey |= 16;
-  if(!mcp.digitalRead(5))
-     thiskey |= 32;
-  if(!mcp.digitalRead(6))
-     thiskey |= 64;
-  if(!mcp.digitalRead(7))
-     thiskey |= 128;
+  keyread = mcp.readGPIOAB()&255;
+  if(!(keyread&1)) thiskey |= 4; 
+  if(!(keyread&2)) thiskey |= 1;
+  if(!(keyread&4)) thiskey |= 2;
+  if(!(keyread&8)) thiskey |= 8;
+  if(!(keyread&16)) thiskey |= 16;
+  if(!(keyread&32)) thiskey |= 32;
+  if(!(keyread&64)) thiskey |= 64;
+  if(!(keyread&128)) thiskey |= 128;
 }
 #else
 void getKey(){
