@@ -139,7 +139,7 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
     delay(200);
   #ifdef ESPBOY
     if (keybModule.getPressedKey()){
-      if((char)keybModule.getLastPressedKey() == '\n'){
+      if((char)keybModule.getLastPressedKey() == '>'){
         img.deleteSprite();
         if(pos + 1 < len){
           buf[pos] = '\n';
@@ -147,20 +147,28 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
         }
         return pos;
       }
-      if(pos < len){
-        buf[pos] = (char)keybModule.getLastPressedKey();
-        tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
-        tft.setCursor(kx + 4,ky + 3);
-        pos++;
-        for(int i = max(0, pos - 10); i < pos; i++)
-          tft.print(buf[i]);
-        tft.setTextColor(0x6d2d);
-        tft.setCursor(kx + 100 - ((pos > 9) ? ((pos > 99)? 12: 6) : 0) - ((len > 9) ? ((len > 99)? 12: 6) : 0), ky + 3);
-        tft.print(pos);
-        tft.print('/');
-        tft.print(len);
-        tft.setTextColor(0xffff);
+      if((char)keybModule.getLastPressedKey() == '<'){
+         if(pos > 0){
+           buf[pos] = 0;
+           pos--;
+         }
+       }
+      else{
+         if(pos < len){
+           buf[pos] = (char)keybModule.getLastPressedKey();
+           pos++;
+         }
       }
+      tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
+      tft.setCursor(kx + 4,ky + 3);
+      for(int i = max(0, pos - 10); i < pos; i++)
+        tft.print(buf[i]);
+      tft.setTextColor(0x6d2d);
+      tft.setCursor(kx + 100 - ((pos > 9) ? ((pos > 99)? 12: 6) : 0) - ((len > 9) ? ((len > 99)? 12: 6) : 0), ky + 3);
+      tft.print(pos);
+      tft.print('/');
+      tft.print(len);
+      tft.setTextColor(0xffff);
     }
   #endif
     getKey();
@@ -189,7 +197,7 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
         px = 11;
     }
     else if(thiskey & 16){//ok
-      if(py == 3 && px == 11){//delite
+      if(py == 3 && px == 11){//delete
         if(pos > 0){
           buf[pos] = 0;
           pos--;

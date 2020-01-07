@@ -1016,19 +1016,21 @@ void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
 }
 
 void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
-  uint32_t p, x2, y2, hx2, color, s;
+  uint32_t p, x2, y2, color, s, endx;
   s = imageSize;
+  endx = ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS);
   for(int32_t yi = 0; yi < ((h * s) >> MULTIPLY_FP_RESOLUTION_BITS); yi++){
     y2 = ((yi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
-    for(int32_t xi = 0; xi < ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS); xi++){
+    if((y + yi) > 128)
+      return;
+    for(int32_t xi = 0; xi < endx; xi++){
       x2 = ((xi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
-      hx2 = x2 / 2;
       if(x2 & 1){
-        p = readMem(a + hx2 + (y2 * w) / 2);
+        p = readMem(a + x2 / 2 + (y2 * w) / 2);
         color = (p & 0x0f);
       }
       else{
-        p = readMem(a + hx2 + (y2 * w) / 2);
+        p = readMem(a + x2 / 2 + (y2 * w) / 2);
         color = (p & 0xf0) >> 4;
       }
       if(color)
@@ -1094,10 +1096,12 @@ void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
   }
 
 void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
-  uint32_t p, x2, y2, hx2, s;
+  uint32_t p, x2, y2, s;
   s = imageSize;
   for(int32_t yi = 0; yi < ((h * s) >> MULTIPLY_FP_RESOLUTION_BITS); yi++){
     y2 = ((yi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+    if((y + yi) > 128)
+      return;
     for(int32_t xi = 0; xi < ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS); xi++){
       x2 = ((xi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
       p = readMem(a + (x2 + y2 * w) / 8);

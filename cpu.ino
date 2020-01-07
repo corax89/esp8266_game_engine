@@ -836,6 +836,11 @@ void cpuStep(){
             accum = isqrt(reg[reg1]);
             reg[reg1] = (int16_t)accum;
           }
+          // NOT R    AD 2R
+          else if (reg2 == 0x20) {
+            accum = (~reg[reg1]);
+            reg[reg1] = (int16_t)accum;
+          }
           break;
         case 0xAE:
           // ANDL R,R   AE RR

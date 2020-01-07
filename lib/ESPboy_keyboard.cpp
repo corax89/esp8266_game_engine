@@ -24,36 +24,42 @@ keyboardModule::keyboardModule(uint8_t clickState, uint8_t backlitState, uint32_
 
 
 uint8_t keyboardModule::begin(){
-  Wire.begin();
-  Wire.beginTransmission(0x27); //check for MCP23017Keyboard at address 0x27
-  if (!Wire.endTransmission()) initFlag = 1;
-  else initFlag =0;
-  mcpKeyboard.begin(7);
-  for (uint8_t i = 0; i < 7; i++){
-    mcpKeyboard.pinMode(i, OUTPUT);
-    mcpKeyboard.digitalWrite(i, HIGH);}
-  for (uint8_t i = 0; i < 5; i++){
-    mcpKeyboard.pinMode(i+8, INPUT);
-    mcpKeyboard.pullUp(i+8, HIGH);}
-
-  mcpKeyboard.pinMode(7, OUTPUT);
-  setBacklitState(backlitFlag);
+  Wire.begin();    
+  Wire.beginTransmission(0x27); //check for MCP23017 Keyboard module at address 0x27
+  if (!Wire.endTransmission()) 
+  {
+    initFlag = 1;
+    mcpKeyboard.begin(7);
+    for (uint8_t i = 0; i < 7; i++){
+      mcpKeyboard.pinMode(i, OUTPUT);
+      mcpKeyboard.digitalWrite(i, HIGH);}
+    for (uint8_t i = 0; i < 5; i++){
+      mcpKeyboard.pinMode(i+8, INPUT);
+      mcpKeyboard.pullUp(i+8, HIGH);} 
+    mcpKeyboard.pinMode(7, OUTPUT);
+    mcpKeyboard.digitalWrite(7, HIGH);
+    setBacklitState(backlitFlag); 
+  }
+  else initFlag = 0; 
   return (initFlag);
 }
 
 
 void keyboardModule::scanKeyboard(){
-   for (uint8_t row = 0; row < 8; row++){
+  static uint8_t keysReaded[7];
+  static uint8_t row, col;
+   for (row = 0; row < 7; row++){
      mcpKeyboard.digitalWrite(row, LOW);
-     for (uint8_t col = 0; col < 8; col++)
-       if (mcpKeyboard.digitalRead(col + 8) == LOW){
+     keysReaded [row] = ((mcpKeyboard.readGPIOAB()>>8) & 31);
+     mcpKeyboard.digitalWrite(row, HIGH);
+   }
+   for (row = 0; row < 7; row++)
+     for (col = 0; col < 5; col++)
+       if (!((keysReaded[row] >> col) & 1)){
          rowKey = row;
          colKey = col;
          pressedKey = pgm_read_word_near(&keybCurrent[currentLayout][rowKey][colKey]);
        }
-     mcpKeyboard.digitalWrite(row, HIGH);
-     yield();
-   }
 }
 
 
@@ -62,7 +68,7 @@ wchar_t keyboardModule::getPressedKey (){
    scanKeyboard();
    if (backlitOffDelay && !autoBacklitOffFlag && millis() > backlitOnTimer + backlitOffDelay){
      autoBacklitOffFlag = 1;
-     mcpKeyboard.pinMode(7, INPUT);
+     mcpKeyboard.digitalWrite(7, LOW);
    }
    if (pressedKey){
      backlitOnTimer = millis();
@@ -80,7 +86,7 @@ wchar_t keyboardModule::getPressedKey (){
       if (currentLayout == keybNorm )
         pressedKey = pgm_read_word_near(&keybCurrent[keybShift][rowKey][colKey]);
       if (currentLayout == keybShift)
-        pressedKey = pgm_read_word_near(&keybCurrent[keybNorm][rowKey][colKey]);
+        pressedKey = pgm_read_word_near(&keybCurrent[keybNorm][rowKey][colKey]); 
       break;
     case '^':
       while (pressedKey == '^') scanKeyboard();
@@ -93,34 +99,34 @@ wchar_t keyboardModule::getPressedKey (){
     case '&':
       if (clickFlag == 1) clickFlag = 0;
       else clickFlag = 1;
-      while (keysUnpressed());
+      while (keysUnpressed());     
       break;
    }
-   if (pressedKey && clickFlag) tone(SOUNDPIN, 400, 30);
-   if (pressedKey == '|' || pressedKey == '~' || pressedKey == '^' || pressedKey == '&' || pressedKey == '`')
+   if (pressedKey && clickFlag) tone(SOUNDPIN, 200, 10);
+   if (pressedKey == '|' || pressedKey == '~' || pressedKey == '^' || pressedKey == '&' || pressedKey == '`') 
      pressedKey = 0;
    return pressedKey;
 }
 
 
 uint8_t keyboardModule::keysUnpressed(){
-  uint8_t keysPressed = 0;
-    for (uint8_t row = 0; row < 8; row++){
+  static uint8_t keysPressed;
+  static uint8_t row;
+    keysPressed = 0;
+    for (row = 0; row < 7; row++){
        mcpKeyboard.digitalWrite(row, LOW);
-       for (uint8_t col = 0; col < 8; col++)
-         if (mcpKeyboard.digitalRead(col+8) == LOW)
-           keysPressed++;
+       if ((mcpKeyboard.readGPIOAB() & 7936) != 7936) keysPressed++;
        mcpKeyboard.digitalWrite(row, HIGH);
-       yield();
     }
-  return (keysPressed);
+    yield();
+    return (keysPressed);
 }
 
 
 void keyboardModule::setBacklitState(uint8_t backlitState){
   backlitFlag = backlitState;
-  if (backlitFlag) mcpKeyboard.pinMode(7, OUTPUT);
-  else mcpKeyboard.pinMode(7, INPUT);
+  if (backlitFlag) mcpKeyboard.digitalWrite(7, HIGH);
+  else mcpKeyboard.digitalWrite(7, LOW);
 }
 
 
