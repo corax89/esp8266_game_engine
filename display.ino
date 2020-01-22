@@ -1459,6 +1459,10 @@ int8_t getCharY(){
 }
 
 void printc(char c, uint8_t fc, uint8_t bc){
+  if(regy > 15){
+      regy = 15;
+      charLineUp(1);
+    }
   if(c == '\n'){
     fillRect(regx * 6, regy * 8, 127 - regx * 6, 8, bgcolor);
     for(uint8_t i = regx; i <= 21; i++){
@@ -1466,23 +1470,15 @@ void printc(char c, uint8_t fc, uint8_t bc){
     }
     regy++;
     regx = 0;
-    if(regy > 15){
-      regy = 15;
-      charLineUp(1);
-    }
   }
   else if(c == '\t'){
     for(uint8_t i = 0; i <= regx % 5; i++){
       fillRect(regx * 6, regy * 8, 6, 8, bgcolor);
       charArray[regx + regy * 21] = ' ';
       regx++;
-      if(regx > 21){
+      if(regx > 20){
         regy++;
         regx = 0;
-        if(regy > 15){
-          regy = 15;
-          charLineUp(1);
-        }
       }
     }
   }
@@ -1494,10 +1490,6 @@ void printc(char c, uint8_t fc, uint8_t bc){
     if(regx > 20){
       regy++;
       regx = 0;
-      if(regy > 15){
-        regy = 15;
-        charLineUp(1);
-      }
     }
   }
 }
@@ -1558,7 +1550,7 @@ void drwRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
   drawFHLine(x0, x1, y0);
   drawFHLine(x0, x1, y1);
   drawFVLine(x0, y0, y1);
-  drawFVLine(x1, y1, y1);
+  drawFVLine(x1, y0, y1);
 }
 
 void fillRect(int8_t x, int8_t y, uint8_t w, uint8_t h, uint8_t c){

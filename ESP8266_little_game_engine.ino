@@ -225,7 +225,7 @@ void coos_key(void){
   while(1){
     COOS_DELAY(100);        // 100 ms
     getKey();
-    if(thiskey & 128)
+    if(thiskey == 192) //key select + start
       pause();
     changeSettings();
   }
