@@ -212,14 +212,14 @@ void display_init(){
 }
 
 void pause(){
-  uint8_t prevKey = 128;
+  uint8_t prevKey = 192;
   noTone(SOUNDPIN);
   drawPause();
   redrawScreen();
   while(1){
     delay(100);
     getKey();
-    if((thiskey & 128) && prevKey != 128){
+    if((thiskey & 192) && prevKey != 192){
       thiskey = 0;
       delay(800);
       return;

@@ -88,6 +88,7 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
   char keysShift[] = "!@#$%^&*(){}QWERTYUIOP|?ASDFGHJKL:+ ZXCVBNM<>_  ";
   int16_t x = 4, y = 4, px = 0, py = 0, pos = 0;
   uint8_t isShift = 0;
+  uint8_t keyModuleConnect = keybModule.begin();
   TFT_eSprite img = TFT_eSprite(&tft);
   img.setColorDepth(1);
   img.createSprite(120, 32);
@@ -138,7 +139,8 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
     }
     delay(200);
   #ifdef ESPBOY
-    if (keybModule.getPressedKey()){
+    if (keyModuleConnect && keybModule.getPressedKey()){
+      //Serial.println((char)keybModule.getLastPressedKey());
       if((char)keybModule.getLastPressedKey() == '>'){
         img.deleteSprite();
         if(pos + 1 < len){
