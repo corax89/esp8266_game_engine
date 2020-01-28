@@ -45,6 +45,11 @@ uint8_t keyboardModule::begin(){
 }
 
 
+uint8_t keyboardModule::getKeyboardAvailable(){
+  return(initFlag);
+}
+
+
 void keyboardModule::scanKeyboard(){
   static uint8_t keysReaded[7];
   static uint8_t row, col;
@@ -64,6 +69,7 @@ void keyboardModule::scanKeyboard(){
 
 
 wchar_t keyboardModule::getPressedKey (){
+ if(initFlag){
    pressedKey = 0;
    scanKeyboard();
    if (backlitOffDelay && !autoBacklitOffFlag && millis() > backlitOnTimer + backlitOffDelay){
@@ -106,6 +112,8 @@ wchar_t keyboardModule::getPressedKey (){
    if (pressedKey == '|' || pressedKey == '~' || pressedKey == '^' || pressedKey == '&' || pressedKey == '`') 
      pressedKey = 0;
    return pressedKey;
+ }
+else return (0);
 }
 
 

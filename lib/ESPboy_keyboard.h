@@ -47,7 +47,7 @@ public:
   void    setBacklitState(uint8_t backlitState);
   wchar_t getPressedKey ();
   wchar_t getLastPressedKey();
-
+  uint8_t getKeyboardAvailable();
 };
 
 #endif

@@ -66,6 +66,17 @@ struct Tile {
   uint16_t pixheight;
 };
 
+struct Castomfont {
+  int16_t adress;
+  int8_t start;
+  int8_t end;
+  int16_t imgwidth;
+  int16_t imgheight;
+  int8_t charwidth;
+  int8_t charheight;
+  int8_t columns;
+};
+
 static const uint8_t keyboardImage[] PROGMEM = {
   0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x31,0x17,0x9c,0x7d,0x12,0x21,0xe,0x71,0xc7,0xc,
   0x60,0x84,0x0,0x79,0xe7,0x84,0x49,0x14,0x12,0x10,0xa2,0x20,0x11,0x49,0x1,0x8,0x21,0x2,0x1f,0x9,0x24,0x88,0x49,0x17,
@@ -103,6 +114,7 @@ struct sprite sprite_table[32] __attribute__ ((aligned));
 struct Particle particles[PARTICLE_COUNT] __attribute__ ((aligned));
 struct Emitter emitter;
 struct Tile tile;
+struct Castomfont castomfont;
 int16_t imageSize = 1;
 int8_t regx = 0;
 int8_t regy = 0;
@@ -209,6 +221,14 @@ void display_init(){
   imageSize = 1;
   regx = 0;
   regy = 0;
+  castomfont.adress = 0;
+  castomfont.start = 0;
+  castomfont.end = 255;
+  castomfont.imgwidth = 0;
+  castomfont.imgheight = 0;
+  castomfont.charwidth = 6;
+  castomfont.charheight = 8;
+  castomfont.columns = 0;
 }
 
 void pause(){
@@ -1752,3 +1772,60 @@ void putchar(char c, uint8_t x, uint8_t y) {
       }
   }
 }
+
+void drawChar(int8_t c, uint16_t x, uint16_t y){
+    if(castomfont.adress == 0){
+      for (int8_t i = 0; i < 5; i++) { // Char bitmap = 5 columns
+        int16_t line = pgm_read_byte(&font_a[c * 5 + i]);
+        for (int8_t j = 0; j < 8; j++, line >>= 1) {
+          if (line & 1)
+            setPix(x + i, y + j, color);
+        }
+      }
+    }
+    else if(c <= castomfont.end){
+      if(c < castomfont.start)
+        return;
+      c -= castomfont.start;
+      int16_t pos = (c % castomfont.columns) * castomfont.charwidth + (c / castomfont.columns) * (castomfont.charheight * castomfont.imgwidth);
+      for (int8_t j = 0; j < castomfont.charheight; j++) {
+        for (int8_t i = 0; i < castomfont.charwidth; i++) {
+          int8_t line = readMem(castomfont.adress + (pos + i) / 8);
+          if (line & (1 << (7 - ((pos + i) & 7))))
+            setPix(x + i, y + j, color);
+        }
+        pos += castomfont.imgwidth;
+      }
+    }
+  }
+  
+void drawString(uint16_t s, uint16_t x, uint16_t y){
+    int16_t i = 0, nx = x;
+    uint8_t c;
+    c = readMem(s + i);
+    while(c){
+      if(c == 10){
+        nx = x - castomfont.charwidth;;
+        y += castomfont.charheight;
+      }
+      else if(nx > -castomfont.charwidth && nx < 128)
+        drawChar(readMem(s + i), nx, y);
+      i++;
+      c = readMem(s + i);
+      nx += castomfont.charwidth;
+    }
+  }
+  
+void fontload(int16_t adr, int8_t start, int8_t end){
+    castomfont.adress = adr;
+    castomfont.start = start & 0xff;
+    castomfont.end = end & 0xff;
+  }
+  
+void fontsize(int16_t imgwidth, int16_t imgheight, int16_t charwidth, int16_t charheight){
+    castomfont.imgwidth = imgwidth;
+    castomfont.imgheight = imgheight;
+    castomfont.charwidth = charwidth & 0xff;
+    castomfont.charheight = charheight & 0xff;
+    castomfont.columns = castomfont.imgwidth / castomfont.charwidth;
+  }
