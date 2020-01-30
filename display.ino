@@ -229,6 +229,7 @@ void display_init(){
   castomfont.charwidth = 6;
   castomfont.charheight = 8;
   castomfont.columns = 0;
+  timeForRedraw = 48;
 }
 
 void pause(){

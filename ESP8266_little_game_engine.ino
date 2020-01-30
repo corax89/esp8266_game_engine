@@ -44,6 +44,7 @@ uint16_t cadr_count = 0;
 unsigned long timeF,timeR;
 uint16_t timeCpu = 0,timeGpu = 0,timeSpr = 0,cpuOPS = 0,cpuOPSD = 0;
 uint8_t fps, fileIsLoad;
+uint8_t timeForRedraw = 48;
 volatile uint16_t timers[8];
 
 static const uint16_t bpalette[] = {
@@ -191,7 +192,7 @@ void coos_cpu(void){
 void coos_screen(void){
    while(1){
     yield();
-    COOS_DELAY(50);        // 50 ms
+    COOS_DELAY(timeForRedraw);
     timeR = millis();
     clearSpriteScr();
     redrawSprites();
@@ -263,8 +264,14 @@ void setup() {
   delay(1);                                // give RF section time to shutdown
   system_update_cpu_freq(FREQUENCY);
   // ------------------end ESP8266'centric------------------------------------
-  Serial.begin (115200);
+  Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
+  Serial.println(F("version "));
+  Serial.print(F(BUILD_VERSION_MAJOR));
+  Serial.print('.');
+  Serial.print(F(BUILD_VERSION_MINOR));
+  Serial.print(F(" build "));
+  Serial.print(F(__DATE__));
  #ifdef ESPBOY
   Wire.setClock(1000000);
   Wire.begin();
@@ -298,6 +305,12 @@ void setup() {
   tft.setTextColor(0xFFE0);
   tft.setCursor(10,102);
   tft.print(F("Little game engine"));
+  tft.setCursor(10,112);
+  tft.print(F(BUILD_VERSION_MAJOR));
+  tft.print('.');
+  tft.print(F(BUILD_VERSION_MINOR));
+  tft.print(' ');
+  tft.print(F(__DATE__));
   //sound init and test
   pinMode(SOUNDPIN, OUTPUT);
   tone(SOUNDPIN, 200, 100);

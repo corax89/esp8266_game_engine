@@ -1183,6 +1183,12 @@ void cpuStep(){
                 adr = reg[reg1];//регистр указывает на участок памяти, в котором расположены последовательно y1, x1, y0, x0
                 setClip(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
                 break;
+              case 0xC0:
+                // SETFPS R   D4 CR
+                reg1 = op2 & 0xf;
+                if(reg[reg1] >= 1 && reg[reg1] <= 40)
+                  timeForRedraw = 1000 / reg[reg1];
+                break;
             }
             break;
         case 0xD5:
