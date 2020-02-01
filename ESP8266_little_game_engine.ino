@@ -266,7 +266,8 @@ void setup() {
   // ------------------end ESP8266'centric------------------------------------
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
-  Serial.println(F("version "));
+  Serial.println();
+  Serial.print(F("version "));
   Serial.print(F(BUILD_VERSION_MAJOR));
   Serial.print('.');
   Serial.print(F(BUILD_VERSION_MINOR));
@@ -376,7 +377,7 @@ void setup() {
  #ifdef ESPBOY
   setScreenResolution(128, 128);
  #else
-  setScreenResolution(239, 239);
+  setScreenResolution(min(SCREEN_REAL_WIDTH, SCREEN_REAL_HEIGHT) - 1, min(SCREEN_REAL_WIDTH, SCREEN_REAL_HEIGHT) - 1);
  #endif
   clearScr(0);
   setColor(1);

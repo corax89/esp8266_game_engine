@@ -1189,13 +1189,18 @@ void cpuStep(){
                 if(reg[reg1] >= 1 && reg[reg1] <= 40)
                   timeForRedraw = 1000 / reg[reg1];
                 break;
+              case 0xD0:
+                // SETCTILE R D4 DR
+                reg1 = op2 & 0xf;
+                setTileCollisionMap(reg[reg1]);
+                break;
             }
             break;
         case 0xD5:
           // LDSPRT R,R   D5RR
           reg1 = (op2 & 0xf0) >> 4;//номер спрайта
           reg2 = op2 & 0xf;//адрес спрайта
-          setSpr(reg[reg1] & 0x1f, reg[reg2]);
+          setSpr((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2]);
           break;
         case 0xD6:
           // SPALET R,R   D6 RR
@@ -1245,7 +1250,7 @@ void cpuStep(){
           // SPRGTX R,X   DC RX
           reg1 = (op2 & 0xf0) >> 4;//num
           reg2 = op2 & 0xf;//value
-          reg[reg1] = getSpriteValue(reg[reg1] & 31, reg[reg2]);
+          reg[reg1] = getSpriteValue((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2]);
           break;
         case 0xDE:
           // AGBSPR R,R     DE RR
@@ -1257,7 +1262,7 @@ void cpuStep(){
           // GTILEXY R,R      DF RR
           reg1 = (op2 & 0xf0) >> 4;
           reg2 = op2 & 0xf;
-          reg[reg1] = getTileInXY(reg[reg1], reg[reg2]);
+          reg[reg1] = getTileInXY(reg[reg1], reg[reg2], 0);
           break;
       }
       break;
@@ -1266,16 +1271,16 @@ void cpuStep(){
       reg1 = (op1 & 0xf);//номер спрайта
       reg2 = (op2 & 0xf0) >> 4;//x
       reg3 = op2 & 0xf;//y
-      setSprPosition(reg[reg1] & 0x1f, reg[reg2], reg[reg3]);
-      if(getSpriteValue(reg[reg1] & 0x1f, 7) < 1)
-        setSpriteValue(reg[reg1] & 0x1f, 7, 1);
+      setSprPosition((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2], reg[reg3]);
+      if(getSpriteValue((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, 7) < 1)
+        setSpriteValue((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, 7, 1);
       break;
     case 0xF:
       // SSPRTV R,R,R FR RR
       reg1 = (op1 & 0xf);//номер спрайта
       reg2 = (op2 & 0xf0) >> 4;//type
       reg3 = op2 & 0xf;//value
-      setSpriteValue(reg[reg1] & 0x1f, reg[reg2], reg[reg3]); 
+      setSpriteValue((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2], reg[reg3]); 
       break;
   }
 }
