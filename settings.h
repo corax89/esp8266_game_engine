@@ -3,7 +3,7 @@
 #define FREQUENCY   160    // valid 80, 160
 #define APPSK  "87654321"
 #define BUILD_VERSION_MAJOR "1"
-#define BUILD_VERSION_MINOR "001"
+#define BUILD_VERSION_MINOR "002"
 
 #ifdef ESPBOY
   #define APSSID "ESPboy"
