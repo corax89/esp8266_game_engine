@@ -1,3 +1,9 @@
+struct {
+  int16_t saveMenuPos;
+  int16_t saveStartMenuPos;
+  uint32_t crc32;
+} rtcData;
+
 static const uint8_t iconBin[] PROGMEM = {
   0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x1c,0xcc,0xcc,0xcc,0xcc,0xcc,
   0xcc,0x11,0x11,0x11,0x11,0x11,0x1c,0x11,0x11,0x11,0x11,0x11,0x1c,0x11,0x11,0x11,0x11,0x11,0x1c,0x11,
@@ -10,6 +16,28 @@ static const uint8_t iconBin[] PROGMEM = {
   0x11,0x11,0x11,0x11,0x1c,0x11,0x11,0x11,0x11,0x11,0x1c,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0x11,0x11,0x11,
   0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11
 };
+
+uint32_t calculateCRC32inRTC(const uint8_t *data) {
+  // Обрабатываем все данные, кроме последних четырёх байтов,
+  // где и будет храниться проверочная сумма.
+  size_t length = sizeof(rtcData) - 4;
+ 
+  uint32_t crc = 0xffffffff;
+  while (length--) {
+    uint8_t c = *data++;
+    for (uint32_t i = 0x80; i > 0; i >>= 1) {
+      bool bit = crc & 0x80000000;
+      if (c & i) {
+        bit = !bit;
+      }
+      crc <<= 1;
+      if (bit) {
+        crc ^= 0x04c11db7;
+      }
+    }
+  }
+  return crc;
+}
 
 uint8_t drawDialog(){
   char txt[] = "Press leftbutton to delete this save.";
@@ -182,16 +210,33 @@ void saveManager(){
   }
 }
 
+void drawVersionInFileList(){
+  tft.setTextColor(TFT_DARKGREY);
+  tft.setCursor(95,120);
+  tft.print(F(BUILD_VERSION_MAJOR));
+  tft.print('.');
+  tft.print(F(BUILD_VERSION_MINOR));
+}
+
 void fileList(String path) {
   fs::Dir dir = SPIFFS.openDir(path);
   char s[32];
   char thisF[32];
   int16_t lst = 1;
-  int16_t pos = 0;
+  int16_t pos;
   int16_t startpos = 0;
   int16_t fileCount = 0;
   int16_t skip = 0;
   uint8_t i,b;
+  ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData));
+  if (rtcData.crc32 != calculateCRC32inRTC((uint8_t*) &rtcData)) {
+    rtcData.saveMenuPos = 0;
+    rtcData.crc32 = calculateCRC32inRTC((uint8_t*) &rtcData);
+    ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData));
+  }
+  setClip(0, 0, 128, 128);
+  pos = rtcData.saveMenuPos;
+  startpos = rtcData.saveStartMenuPos;
   display_init();
   setBgColor(0);
   setColor(1);
@@ -201,7 +246,6 @@ void fileList(String path) {
  #endif
   for(i = 0; i < 192; i++)
     writeMem(i + 1024 + 192, pgm_read_byte_near(iconBin + i));
-    //mem[i + 1024 + 192] = pgm_read_byte_near(iconBin + i);
   setImageSize(1);
   while (dir.next()) {
     fs::File entry = dir.openFile("r");
@@ -216,7 +260,7 @@ void fileList(String path) {
     getKey();
     while(thiskey == 0){  
       clearScr(0);
-      putString((char*)"No files, please upload files", 2);
+      putString((char*)"No files, please upload", 2);
       redrawScreen();
       getKey();
       delay(100);
@@ -258,7 +302,6 @@ void fileList(String path) {
             for(i = 0; i < 192; i++)
               if(entry.available())
                 writeMem(i + 1024, (uint8_t)entry.read());
-                //mem[i + 1024] = (uint8_t)entry.read(); 
             drawImg(1024, 0, lst * 17 - 16, 24, 16);
           }
           else
@@ -279,7 +322,8 @@ void fileList(String path) {
     else if(startpos > pos){
       startpos = pos;
     }
-    redrawScreen();  
+    redrawScreen();
+    drawVersionInFileList();
     delay(200);
     getKey();
     while(thiskey == 0){   
@@ -290,6 +334,10 @@ void fileList(String path) {
         return;
     }
     if(thiskey & 16){//ok
+      rtcData.saveMenuPos = pos;
+      rtcData.saveStartMenuPos = startpos;
+      rtcData.crc32 = calculateCRC32inRTC((uint8_t*) &rtcData);
+      ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData));
       cpuInit();
       i = 0;
       while(i < 28 && thisF[i] != '.')
@@ -303,16 +351,45 @@ void fileList(String path) {
       return;
     }
     else if(thiskey & 2){//down
-      if(pos < fileCount - 1)
+      if(pos < fileCount - 1){
         pos++;
-      if(pos - startpos > 5)
+      }
+      else{
+        pos = 0;
+        startpos = 0;
+      }
+      if(pos - startpos > 5){
         startpos++;
+        setColor(0);
+        for(int8_t i = 0; i < 8; i++){
+          drwLine(0, 0,  127, 0);
+          drwLine(0, 1, 127, 1);
+          scrollScreen(0, 1);
+          scrollScreen(0, 1);
+          redrawScreen();
+        }
+      }
     }
     else if(thiskey & 1){//up
-      if(pos > 0)
+      if(pos > 0){
         pos--;
-      if(pos - startpos < 0)
+      }
+      else{
+        pos = fileCount - 1;
+        startpos = (fileCount - 6 >= 0) ? fileCount - 6 : 0;
+      }
+      if(pos - startpos < 0){
         startpos--;
+        setColor(0);
+        for(int8_t i = 0; i < 8; i++){
+          scrollScreen(0, 3);
+          scrollScreen(0, 3);
+          drwLine(0, 0,  127, 0);
+          drwLine(0, 1, 127, 1);
+          redrawScreen();
+          drawVersionInFileList();
+        }
+      }
     }
     if(thiskey & 128){//select
       saveManager();
