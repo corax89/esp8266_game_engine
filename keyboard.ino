@@ -57,7 +57,7 @@ void getKey(){
 }
 #else
 void getKey(){
-   dio_in;
+  uint8_t dio_in;
   Wire.beginTransmission(i2c_adress);
   Wire.write(B11111111); //Конфигурация всех портов PCF8574P на клавиатуре как входа
   Wire.endTransmission();
@@ -173,8 +173,10 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
     }
   #endif
     getKey();
-    if(thiskey == 192) //key select + start
-      pause();
+    if(thiskey == 192){ //key select + start
+      if(pause())
+        return 0;
+    }
     if(thiskey & 2){//down
       if(py < 3)
         py++;

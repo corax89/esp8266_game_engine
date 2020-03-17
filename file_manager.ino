@@ -18,10 +18,7 @@ static const uint8_t iconBin[] PROGMEM = {
 };
 
 uint32_t calculateCRC32inRTC(const uint8_t *data) {
-  // Обрабатываем все данные, кроме последних четырёх байтов,
-  // где и будет храниться проверочная сумма.
   size_t length = sizeof(rtcData) - 4;
- 
   uint32_t crc = 0xffffffff;
   while (length--) {
     uint8_t c = *data++;
@@ -212,7 +209,7 @@ void saveManager(){
 
 void drawVersionInFileList(){
   tft.setTextColor(TFT_DARKGREY);
-  tft.setCursor(95,120);
+  tft.setCursor(SCREEN_REAL_WIDTH - 30, SCREEN_REAL_HEIGHT - 7);
   tft.print(F(BUILD_VERSION_MAJOR));
   tft.print('.');
   tft.print(F(BUILD_VERSION_MINOR));
@@ -231,6 +228,7 @@ void fileList(String path) {
   ESP.rtcUserMemoryRead(0, (uint32_t*) &rtcData, sizeof(rtcData));
   if (rtcData.crc32 != calculateCRC32inRTC((uint8_t*) &rtcData)) {
     rtcData.saveMenuPos = 0;
+    rtcData.saveStartMenuPos = 0;
     rtcData.crc32 = calculateCRC32inRTC((uint8_t*) &rtcData);
     ESP.rtcUserMemoryWrite(0, (uint32_t*) &rtcData, sizeof(rtcData));
   }
@@ -402,12 +400,10 @@ void loadBinFromSPIFS(char fileName[]){
   int i;
   for(i = 0; i < RAM_SIZE; i++)
     writeMem(i, 0);
-    //mem[i] = 0;
   fs::File f = SPIFFS.open(fileName, "r");
   if(f.size() < RAM_SIZE)
     for(i = 0; i < f.size(); i++){
       writeMem(i, (uint8_t)f.read());
-      //mem[i] = (uint8_t)f.read();
     }
   Serial.print(F("loaded "));
   Serial.print(i);
@@ -422,8 +418,7 @@ void loadLgeFromSPIFS(char fileName[]){
   uint8_t b,l;
   int16_t length, position, point;
   for(i = 0; i < RAM_SIZE; i++)
-    writeMem(n, 0);
-    //mem[i] = 0;
+    writeMem(i, 0);
   fs::File f = SPIFFS.open(fileName, "r");
   if((char)f.read() == 'l' && (char)f.read() == 'g' && (char)f.read() == 'e'){
     l = (uint8_t)f.read();
@@ -442,7 +437,6 @@ void loadLgeFromSPIFS(char fileName[]){
       for( j = 0; j < length; j ++){
         if(n < RAM_SIZE)
           writeMem(n, (uint8_t)f.read());
-          //mem[n] = (uint8_t)f.read();
         n++;
       }
     }
@@ -453,7 +447,6 @@ void loadLgeFromSPIFS(char fileName[]){
       for( j = 0; j < length; j ++){
         if(n < RAM_SIZE && point + j < RAM_SIZE)
           writeMem(n, readMem(point + j));
-          //mem[n] = mem[point + j];
         n++;
       }
     }

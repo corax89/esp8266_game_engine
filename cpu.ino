@@ -143,6 +143,7 @@ void debug(){
   Serial.print(interrupt);
   Serial.print('/');
   Serial.println(interruptFifo.size);
+  spriteDebug();
 }
 
 inline void setRedraw(){
@@ -1199,7 +1200,7 @@ void cpuStep(){
         case 0xD5:
           // LDSPRT R,R   D5RR
           reg1 = (op2 & 0xf0) >> 4;//номер спрайта
-          reg2 = op2 & 0xf;//адрес спрайта
+          reg2 = op2 & 0x0f;//адрес спрайта
           setSpr((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2]);
           break;
         case 0xD6:

@@ -234,7 +234,7 @@ void display_init(){
   timeForRedraw = 48;
 }
 
-void pause(){
+char pause(){
   uint8_t prevKey = 192;
   noTone(SOUNDPIN);
   drawPause();
@@ -245,7 +245,7 @@ void pause(){
     if((thiskey & 192) && prevKey != 192){
       thiskey = 0;
       delay(800);
-      return;
+      return 0;
     }
     if(thiskey & 16){
       clearSpriteScr();
@@ -255,7 +255,7 @@ void pause(){
       }
       thiskey = 0;
       fileList("/");
-      return;
+      return 1;
     }
     prevKey = thiskey;
   }
@@ -666,6 +666,15 @@ inline void clearScr(uint8_t color){
     for(uint8_t x = 0; x < 128; x++)
       setPix(x, y, color);
   }
+}
+
+void spriteDebug(){
+  int i;
+  for(i = 0; i < SPRITE_COUNT; i++){
+    Serial.print(sprite_table[i].address);
+    Serial.print(':');
+  }
+  Serial.println();
 }
 
 void setImageSize(uint16_t size){

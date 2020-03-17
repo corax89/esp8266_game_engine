@@ -75,8 +75,7 @@ void loadFromSerial(){
   unsigned char n;
   int16_t j = 0;
   for(int16_t i = 0; i < RAM_SIZE; i++)
-    writeMem(n, 0);
-    //mem[i] = 0;
+    writeMem(i, 0);
   while(c != '.'){
     if(Serial.available()){
       c = Serial.read();
@@ -89,7 +88,6 @@ void loadFromSerial(){
         }
         Serial.print(c);
         writeMem(j, n << 4);
-        //mem[j] = n << 4;
         n = 48;
         while(n > 15){
           c = Serial.read();
@@ -97,7 +95,6 @@ void loadFromSerial(){
         }
         Serial.print(c);
         writeMem(j, readMem(j) + n);
-        //mem[j] += n;
         j++;
       }
     }
