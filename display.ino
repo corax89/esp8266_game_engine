@@ -1786,7 +1786,7 @@ void putchar(char c, uint8_t x, uint8_t y) {
   }
 }
 
-void drawChar(int8_t c, uint16_t x, uint16_t y){
+void drawChar(uint8_t c, uint16_t x, uint16_t y){
     if(castomfont.adress == 0){
       for (int8_t i = 0; i < 5; i++) { // Char bitmap = 5 columns
         int16_t line = pgm_read_byte(&font_a[c * 5 + i]);
