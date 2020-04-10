@@ -3,6 +3,9 @@
 #define NEXT_CHAR_IN_P rtttl.position++; c = (char)readMem(rtttl.startposition + rtttl.position); if(c == 0) return 50;
 #define OCTAVE_OFFSET 0
 
+#pragma GCC optimize ("-O2")
+#pragma GCC push_options
+
 int notes[] = { 0,
   262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494,
   523, 554, 587, 622, 659, 698, 740, 784, 831, 880, 932, 988,
@@ -227,6 +230,14 @@ int playRtttl(){
   // now, get optional '.' dotted note
   if(c == '.'){
     duration += duration/2;
+    NEXT_CHAR_IN_P
+  }
+  else if(c == ';'){
+    duration += duration;
+    NEXT_CHAR_IN_P
+  }
+  else if(c == '&'){
+    duration += duration / 2 * 3;
     NEXT_CHAR_IN_P
   }
   // now, get scale

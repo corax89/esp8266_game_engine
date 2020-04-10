@@ -827,20 +827,22 @@ void cpuStep(){
         case 0xAD:
           reg1 = op2 & 0xf;
           reg2 = op2 & 0xf0;
-          // RAND R   AD 0R
-          if(reg2 == 0x00){
-            accum = random(0, reg[reg1] + 1);
-            reg[reg1] = (int16_t)accum;
-          }
-          // SQRT R    AD 1R
-          else if(reg2 == 0x10){
-            accum = isqrt(reg[reg1]);
-            reg[reg1] = (int16_t)accum;
-          }
-          // NOT R    AD 2R
-          else if (reg2 == 0x20) {
-            accum = (~reg[reg1]);
-            reg[reg1] = (int16_t)accum;
+          switch(reg2){
+            // RAND R   AD 0R
+            case 0x00:
+              accum = random(0, reg[reg1] + 1);
+              reg[reg1] = (int16_t)accum;
+            break;
+            // SQRT R    AD 1R
+            case 0x10:
+              accum = isqrt(reg[reg1]);
+              reg[reg1] = (int16_t)accum;
+            break;
+            // NOT R    AD 2R
+            case 0x20:
+              accum = (~reg[reg1]);
+              reg[reg1] = (int16_t)accum;
+            break;
           }
           break;
         case 0xAE:
@@ -883,56 +885,64 @@ void cpuStep(){
           reg1 = (op2 & 0xf0) >> 4;
           reg2 = op2 & 0xf;
           setFlags(accum);
-          if(reg2 == 0)
-            reg[reg1] = carry;
-          else if(reg2 == 1)
-            reg[reg1] = zero;
-          else if(reg2 == 2)
-            reg[reg1] = negative;
-          else if(reg2 == 3){ //pozitive
-            if(negative == 0 && zero == 0)
-              reg[reg1] = 1;
-            else
+          switch(reg2){
+            case 0:
+              reg[reg1] = carry;
+              break;
+            case 1:
+              reg[reg1] = zero;
+              break;
+            case 2:
+              reg[reg1] = negative;
+              break;
+            case 3: //pozitive
+              if(negative == 0 && zero == 0)
+                reg[reg1] = 1;
+              else
+                reg[reg1] = 0;
+              break;
+            case 4: //not pozitive
+              if(negative == 0 && zero == 0)
+                reg[reg1] = 0;
+              else
+                reg[reg1] = 1;
+              break;
+            case 5:
+              reg[reg1] = 1 - zero;
+              break;
+            case 6:
+                reg[reg1] = redraw;
+                redraw = 0;
+              break;
+            default:
               reg[reg1] = 0;
           }
-          else if(reg2 == 4){ //not pozitive
-            if(negative == 0 && zero == 0)
-              reg[reg1] = 0;
-            else
-              reg[reg1] = 1;
-          }
-          else if(reg2 == 5)
-            reg[reg1] = 1 - zero;
-          else if(reg2 == 6){
-              reg[reg1] = redraw;
-              redraw = 0;
-            }
-          else
-            reg[reg1] = 0;
           break;
         case 0xc3:
-          reg1 = op2 & 0xf;
+          reg1 = op2 & 0x0f;
           reg2 = op2 & 0xf0;
-          // ITOF R   C3 0R
-          if (reg2 == 0x00) {
-            reg[reg1] = reg[reg1] * (1 << MULTIPLY_FP_RESOLUTION_BITS);
-          }
-          // FTOI R   C3 1R
-          else if (reg2 == 0x10) {
-            reg[reg1] = reg[reg1] / (1 << MULTIPLY_FP_RESOLUTION_BITS);
-          }
-          // SIN R   C3 2R
-          else if (reg2 == 0x20) {
-            reg[reg1] = fixed_sin(reg[reg1]);
-          }
-          // SIN R   C3 3R
-          else if (reg2 == 0x30) {
-            reg[reg1] = fixed_cos(reg[reg1]);
-          }
-          // MEMCPY R    C3 4R
-          else if (reg2 == 0x40) {
-            adr = reg[reg1];
-            copyMem(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+          switch(reg2){
+            // ITOF R   C3 0R
+            case 0x00:
+              reg[reg1] = reg[reg1] * (1 << MULTIPLY_FP_RESOLUTION_BITS);
+              break;
+            // FTOI R   C3 1R
+            case 0x10:
+              reg[reg1] = reg[reg1] / (1 << MULTIPLY_FP_RESOLUTION_BITS);
+              break;
+            // SIN R   C3 2R
+            case 0x20:
+              reg[reg1] = fixed_sin(reg[reg1]);
+              break;
+            // SIN R   C3 3R
+            case 0x30:
+              reg[reg1] = fixed_cos(reg[reg1]);
+              break;
+            // MEMCPY R    C3 4R
+            case 0x40:
+              adr = reg[reg1];
+              copyMem(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+              break;
           }
           break;
         case 0xC4:
@@ -1212,22 +1222,29 @@ void cpuStep(){
         case 0xD7:
             reg1 = op2 & 0xf;
             adr = reg[reg1];
-            // SPART R     D7 0R
-            if((op2 & 0xf0) == 0x0)
-              //регистр указывает на участок памяти, в котором расположены последовательно count, time, gravity
-              setParticle(readInt(adr + 4), readInt(adr + 2), readInt(adr));
-            else if((op2 & 0xf0) == 0x10)
-              //регистр указывает на участок памяти, в котором расположены последовательно speed, direction2, direction1, time
-              setEmitter(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
-            else if((op2 & 0xf0) == 0x20)
-              //регистр указывает на участок памяти, в котором расположены последовательно color, y, x
-              drawParticle(readInt(adr + 4), readInt(adr + 2), readInt(adr) & 0xf);
-            else if((op2 & 0xf0) == 0x50)
-              //регистр указывает на участок памяти, в котором расположены последовательно y2,x2,y1,x1
-              reg[1] = distancepp(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
-            else if((op2 & 0xf0) == 0x60)
-              //регистр указывает на участок памяти, в котором расположены последовательно size,height,width
-              setEmitterSize(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+            switch(op2 & 0xf0){
+              case 0x0:
+                // SPART R     D7 0R
+                //регистр указывает на участок памяти, в котором расположены последовательно count, time, gravity
+                setParticle(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+                break;
+              case 0x10:
+                //регистр указывает на участок памяти, в котором расположены последовательно speed, direction2, direction1, time
+                setEmitter(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+                break;
+              case 0x20:
+                //регистр указывает на участок памяти, в котором расположены последовательно color, y, x
+                drawParticle(readInt(adr + 4), readInt(adr + 2), readInt(adr) & 0xf);
+                break;
+              case 0x50:
+                //регистр указывает на участок памяти, в котором расположены последовательно y2,x2,y1,x1
+                reg[1] = distancepp(readInt(adr + 6), readInt(adr + 4), readInt(adr + 2), readInt(adr));
+                break;
+              case 0x60:
+                //регистр указывает на участок памяти, в котором расположены последовательно size,height,width
+                setEmitterSize(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+                break;
+            }
             break;
         case 0xD8:
           // SCROLL R,R   D8RR
