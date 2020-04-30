@@ -309,7 +309,7 @@ void setLedColor(uint16_t r5g6b5){
 #endif
 
 inline void cpuRun(uint16_t n){
-  for(uint16_t i=0; i < n; i++){
+  for(int i=0; i < n; i++){
     cpuStep();
   }
 }

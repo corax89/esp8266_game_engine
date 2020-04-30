@@ -11,6 +11,8 @@
 #ifdef ESPBOY
   #include <Adafruit_MCP23017.h>
   #include <Adafruit_MCP4725.h>
+  #include <ESP8266httpUpdate.h>
+  #include "ESPboyOTA.h"
   #include "ESPboyLogo.h"
   #include "lib/ESPboy_keyboard.h"
   #include "lib/ESPboy_keyboard.cpp"
@@ -21,6 +23,7 @@
   Adafruit_MCP23017 mcp;
   Adafruit_MCP4725 dac;
   ESPboyLED myled;
+  ESPboyOTA* OTAobj = NULL;
 #endif
 
 Coos <4, 0> coos;
@@ -270,6 +273,7 @@ void setup() {
   Serial.print(F(BUILD_VERSION_MINOR));
   Serial.print(F(" build "));
   Serial.print(F(__DATE__));
+  randomSeed(RANDOM_REG32);
  #ifdef ESPBOY
   Wire.setClock(1000000);
   Wire.begin();
@@ -324,6 +328,11 @@ void setup() {
   }
   dac.setVoltage(4095, true);
   delay(1000);
+  getKey();
+  //go to OTA
+  if(thiskey & 32 || thiskey & 16){//key AB
+    OTAobj = new ESPboyOTA(&tft, &mcp);
+  }
  #else
   Wire.begin(D2, D1);
   geti2cAdress();
@@ -340,33 +349,11 @@ void setup() {
   else{
     Serial.println(F("SPIFFS Initialization...failed"));
   }
-  randomSeed(RANDOM_REG32);
-  getKey();
-  //go to web file manager
-  if(thiskey & 32){//key B
-    serverSetup();
-    tft.setCursor(0,10);
-    tft.print(F("SSID "));
-    tft.print(F(APSSID));
-    tft.print(F("\nPassword "));
-    tft.print(F(APPSK));
-    tft.print(F("\nGo to \nhttp://192.168.4.1"));
-    tft.print(F("\nin a web browser"));
-    tft.print(F("\nPress button A to\nreboot"));
-    while(1){
-      serverLoop();
-      getKey();
-      if(Serial.read() == 'r' || thiskey & 16)
-        ESP.reset();
-      delay(100);
-    }
-  }
-  else{
-    // turn off ESP8266 RF
-    WiFi.forceSleepBegin();
-    delay(1);
-  }
+  // turn off ESP8266 RF
+  WiFi.forceSleepBegin();
+  delay(1);
   memoryAlloc();
+  loadSplashscreen();
   cpuInit();
   Serial.print(F("FreeHeap:"));
   Serial.println(ESP.getFreeHeap());

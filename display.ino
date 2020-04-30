@@ -130,13 +130,18 @@ uint8_t isClip = 0;
 #pragma GCC optimize ("-O2")
 #pragma GCC push_options
 
-void memoryAlloc(){
+void screenMemoryAlloc(){
   screen = (uint8_t*)malloc(SCREEN_ARRAY_DEF * sizeof(uint8_t));
   if(screen == NULL)
     Serial.println(F("Out of memory"));
   sprite_screen = (uint8_t*)malloc(SCREEN_ARRAY_DEF * sizeof(uint8_t));
   if(sprite_screen == NULL)
     Serial.println(F("Out of memory"));
+}
+
+void screenMemoryFree(){
+  free(screen);
+  free(sprite_screen);
 }
 
 int16_t atan2_fp(int16_t y_fp, int16_t x_fp){
@@ -345,7 +350,7 @@ void redrawScreen(){
     int y_ratio = ( int ) ((128 << 16) / rscreenHeight);
     uint16_t x2, hx2, y2, startx, endx, startj;
     int16_t prevy2 = -1;
-    for(int16_t i = 0; i < rscreenHeight; i++) {
+    for(int i = 0; i < rscreenHeight; i++) {
       y2 = ((i * y_ratio) >> 16);
       if(line_is_draw[y2]){
         if(line_is_draw[y2] == 2){
@@ -362,7 +367,7 @@ void redrawScreen(){
           endx = displayXOffset + rscreenWidth;
         tft.setAddrWindow(startx, i, endx, i  + 1);
         if(prevy2 != y2)
-          for ( int j = startj; j < rscreenWidth; j++) {
+          for (int j = startj; j < rscreenWidth; j++) {
             x2 = ((j * x_ratio) >> 16);
             hx2 = x2 / 2;
             if(x2 & 1){
@@ -382,7 +387,7 @@ void redrawScreen(){
         tft.pushColors(pix_buffer, endx - startx);
       }              
     }
-    for(uint8_t i = 0; i < 128; i++)
+    for(int i = 0; i < 128; i++)
       line_is_draw[i] = 0;
 }
 
