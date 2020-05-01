@@ -338,15 +338,19 @@ void setup() {
   geti2cAdress();
   tft.init();            // initialize LCD
   tft.setRotation(1);
-  tft.fillScreen(0x0000);
  #endif
+  tft.fillScreen(0x0000);
   tft.setTextSize(1);
-  tft.setTextColor(0xffff);
+  tft.setTextColor(0xFFE0);
   tft.setCursor(2, 2);
   tft.print(F("SPIFFS Initialize... Please wait"));
   //Initialize File System
   if(SPIFFS.begin()){
     Serial.println(F("SPIFFS Initialize....ok"));
+    FSInfo fs_info;
+    SPIFFS.info(fs_info);
+    Serial.print(F("SPIFFS Used "));
+    Serial.println(fs_info.usedBytes / 1024 / 1024);
   }
   else{
     Serial.println(F("SPIFFS Initialization...failed"));
