@@ -15,7 +15,7 @@ thanks to DmitryL (Plague) for help, tests and advices
 #include <ESP8266httpUpdate.h>
 
 #define OTA_TIMEOUT_CONNECTION 10000
-#define OTA_MAX_CONSOLE_STRINGS 16
+#define OTA_MAX_CONSOLE_STRINGS 50
 #define OTA_MAX_STRINGS_ONSCREEN_FULL 15
 #define OTA_MAX_STRINGS_ONSCREEN_SMALL 10
 #define OTA_MAX_TYPING_CHARS 60
