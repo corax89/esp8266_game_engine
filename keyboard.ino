@@ -83,9 +83,10 @@ void getKey(){
 }
 #endif
 
+const uint8_t v_keys[] PROGMEM =      "0123456789[]qwertyuiop\"/asdfghjkl;= zxcvbnm,.-  ";
+const uint8_t v_keysShift[] PROGMEM = "!@#$%^&*(){}QWERTYUIOP|?ASDFGHJKL:+ ZXCVBNM<>_  ";
+
 uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
-  char keys[] =      "0123456789[]qwertyuiop\"/asdfghjkl;= zxcvbnm,.-  ";
-  char keysShift[] = "!@#$%^&*(){}QWERTYUIOP|?ASDFGHJKL:+ ZXCVBNM<>_  ";
   int16_t x = 4, y = 4, px = 0, py = 0, pos = 0;
   uint8_t isShift = 0;
   TFT_eSprite img = TFT_eSprite(&tft);
@@ -126,9 +127,9 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
             }
             else{
               if(isShift)
-                img.drawChar(keysShift[i * 12 + j], 56 + j * 16 - x, i * 16 - y);
+                img.drawChar(pgm_read_byte(&v_keysShift[i * 12 + j]), 56 + j * 16 - x, i * 16 - y);
               else
-                img.drawChar(keys[i * 12 + j], 56 + j * 16 - x, i * 16 - y);
+                img.drawChar(pgm_read_byte(&v_keys[i * 12 + j]), 56 + j * 16 - x, i * 16 - y);
             }
           }
         }
@@ -139,7 +140,6 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
     delay(200);
   #ifdef ESPBOY
     if (keybModule.getPressedKey()){
-      //Serial.println((char)keybModule.getLastPressedKey());
       if((char)keybModule.getLastPressedKey() == '>'){
         img.deleteSprite();
         if(pos + 1 < len){
@@ -230,9 +230,9 @@ uint8_t virtualKeyboard(uint8_t kx, uint8_t ky, char buf[], uint8_t len){
       else{
         if(pos < len){
           if(isShift)
-            buf[pos] = keysShift[px + py * 12];
+            buf[pos] = pgm_read_byte(&v_keysShift[px + py * 12]);
           else
-            buf[pos] = keys[px + py * 12];
+            buf[pos] = pgm_read_byte(&v_keys[px + py * 12]);
           tft.fillRect(kx + 1, ky + 1, 122, 10, 0x0000);
           tft.setCursor(kx + 4,ky + 3);
           pos++;

@@ -6,7 +6,7 @@
 #pragma GCC optimize ("-O2")
 #pragma GCC push_options
 
-int notes[] = { 0,
+const int notes[] PROGMEM = { 0,
   262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494,
   523, 554, 587, 622, 659, 698, 740, 784, 831, 880, 932, 988,
   1047, 1109, 1175, 1245, 1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976,
@@ -254,7 +254,7 @@ int playRtttl(){
   // now play the note
   rtttl.delay = duration;
   if(note){
-    rtttl.this_tone = notes[note + ((scale - 4) * 12)];
+    rtttl.this_tone = pgm_read_word(&notes[note + ((scale - 4) * 12)]);
     tone(SOUNDPIN, rtttl.this_tone, rtttl.delay);
   }
   else{

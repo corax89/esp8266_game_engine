@@ -338,16 +338,21 @@ void setup() {
   geti2cAdress();
   tft.init();            // initialize LCD
   tft.setRotation(1);
- #endif
   tft.fillScreen(0x0000);
+ #endif
   tft.setTextSize(1);
   tft.setTextColor(0xffff);
+  tft.setCursor(2, 2);
+  tft.print(F("SPIFFS Initialize... Please wait"));
   //Initialize File System
   if(SPIFFS.begin()){
     Serial.println(F("SPIFFS Initialize....ok"));
   }
   else{
     Serial.println(F("SPIFFS Initialization...failed"));
+    tft.fillScreen(0x0000);
+    tft.setCursor(2, 2);
+    tft.print(F("SPIFFS Initialize... failed"));   
   }
   // turn off ESP8266 RF
   WiFi.forceSleepBegin();

@@ -139,15 +139,18 @@ void handleFileUpload() {
   }
 }
 
+const char send_bad_args[] PROGMEM = "BAD ARGS";
+const char send_bad_path[] PROGMEM = "BAD PATH";
+
 void handleFileDelete() {
   const char *txtplain = "text/plain";
   if (server.args() == 0) {
-    return server.send(500, txtplain, "BAD ARGS");
+    return server.send_P(500, txtplain, send_bad_args);
   }
   String path = server.arg(0);
   Serial.print(F("handleFileDelete: ")); Serial.println(path);
   if (path == "/") {
-    return server.send(500, txtplain, "BAD PATH");
+    return server.send_P(500, txtplain, send_bad_path);
   }
   if (!SPIFFS.exists(path)) {
     return server.send(404, txtplain, "404");
