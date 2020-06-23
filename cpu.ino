@@ -152,8 +152,10 @@ inline void setRedraw(){
 
 inline void setFlags(int32_t n){
   carry = (n > 0xffff) ? 1 : 0;
-  zero = (n == 0) ? 1 : 0;
-  negative = (n < 0) ? 1 : 0;
+  //zero = (n == 0) ? 1 : 0;
+  //negative = (n < 0) ? 1 : 0;
+  negative = n >> 31;
+  zero = (n == 0);
 }
 
 int16_t isqrt(int16_t n) {
@@ -172,7 +174,7 @@ int16_t isqrt(int16_t n) {
 }
 
 inline int16_t distancepp(int16_t x1, int16_t y1, int16_t x2, int16_t y2){
-  return isqrt((x2 - x1)*(x2 - x1) + (y2-y1)*(y2-y1));
+  return isqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
 inline void setDataName(uint16_t address){
@@ -289,7 +291,7 @@ int16_t fixed_sin(int x) {
 }
 
 inline int16_t fixed_cos(int16_t g){
-  return fixed_sin(g+90);
+  return fixed_sin(g + 90);
 }
 
 inline void copyMem(uint16_t to_adr, uint16_t from_adr, uint16_t num_bytes) {
@@ -317,9 +319,7 @@ inline void cpuRun(uint16_t n){
 void cpuStep(){
   uint8_t op1 = readMem(pc++);
   uint8_t op2 = readMem(pc++);
-  uint8_t reg1 = 0;
-  uint8_t reg2 = 0;
-  uint8_t reg3 = 0;
+  uint8_t reg1, reg2, reg3;
   uint16_t adr;
   uint16_t j;
   switch(op1 >> 4){
@@ -327,15 +327,15 @@ void cpuStep(){
       switch(op1){ 
         case 0x01: 
           //LDI R,int   01 0R XXXX
-          reg1 = (op2 & 0xf);
+          reg1 = op2 & 0xf;
           accum = readInt(pc);
           reg[reg1] = (int16_t)accum;
           pc += 2;
           break;
         case 0x02: 
           //LDI R,(R)   02 RR
-          reg1 = ((op2 & 0xf0) >> 4);
-          reg2 = (op2 & 0xf);
+          reg1 = op2 >> 4;
+          reg2 = op2 & 0xf;
           accum = readInt(reg[reg2]);
           reg[reg1] = (int16_t)accum;
           break;
@@ -348,28 +348,28 @@ void cpuStep(){
           break;
         case 0x04: 
           //LDI R,(int+R) 04 RR XXXX
-          reg1 = ((op2 & 0xf0) >> 4);
-          reg2 = (op2 & 0xf);
+          reg1 = op2 >> 4;
+          reg2 = op2 & 0xf;
           accum = readInt(reg[reg2] + readInt(pc));
           reg[reg1] = (int16_t)accum;
           pc += 2;
           break;
         case 0x05: 
           //STI (R),R   05 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           writeInt(reg[reg1],reg[reg2]);
           break;
         case 0x06:
           if((op2 & 0x0f) == 0){
             //STI (adr),R 06 R0 XXXX
-            reg1 = (op2 & 0xf0) >> 4;
+            reg1 = op2 >> 4;
             writeInt(readInt(pc),reg[reg1]);
             pc += 2;
           }
           else{
             //STI (adr+R),R 06 RR XXXX
-            reg1 = (op2 & 0xf0) >> 4;
+            reg1 = op2 >> 4;
             reg2 = op2 & 0xf;
             writeInt(readInt(pc) + reg[reg1],reg[reg2]);
             pc += 2;
@@ -377,13 +377,13 @@ void cpuStep(){
           break;
         case 0x07:
           //MOV R,R   07 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           reg[reg1] = reg[reg2];
           break;
         case 0x08:
           //LDIAL R,(int+R*2) 08 RR XXXX
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = readInt(reg[reg2] * 2 + readInt(pc));
           reg[reg1] = (int16_t)accum;
@@ -391,7 +391,7 @@ void cpuStep(){
           break;
         case 0x09:
           //STIAL (adr+R*2),R   09 RR XXXX
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           writeInt(readInt(pc) + reg[reg1] * 2,reg[reg2]);
           pc += 2;
@@ -409,16 +409,16 @@ void cpuStep(){
     case 0x2:
       if(op1 == 0x20){
         // LDC R,(R)  20 RR
-        reg1 = ((op2 & 0xf0) >> 4);
-        reg2 = (op2 & 0xf);
+        reg1 = op2 >> 4;
+        reg2 = op2 & 0xf;
         accum = readMem(reg[reg2]);
         reg[reg1] = (int16_t)accum;
       }
       else{
         // LDC R,(R+R)  2R RR
-        reg1 = (op1 & 0xf);
-        reg2 = ((op2 & 0xf0) >> 4);
-        reg3 = (op2 & 0xf);
+        reg1 = op1 & 0xf;
+        reg2 = op2 >> 4;
+        reg3 = op2 & 0xf;
         accum = readMem(reg[reg2] + reg[reg3]);
         reg[reg1] = (int16_t)accum;
       }
@@ -427,28 +427,28 @@ void cpuStep(){
       switch(op1){
         case 0x30:
           // LDC R,(int+R)30 RR XXXX
-          reg1 = ((op2 & 0xf0) >> 4);
-          reg2 = (op2 & 0xf);
+          reg1 = op2 >> 4;
+          reg2 = op2 & 0xf;
           accum = readMem(reg[reg2] + readInt(pc));
           reg[reg1] = (int16_t)accum;
           pc += 2;
           break;
         case 0x31:
           // LDC R,(adr)  31 0R XXXX
-          reg1 = (op2 & 0xf);
+          reg1 = op2 & 0xf;
           accum = readMem(readInt(pc));
           reg[reg1] = (int16_t)accum;
           pc += 2;
           break;
         case 0x32:
           // STC (adr),R  32 0R XXXX
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           writeMem(readInt(pc),reg[reg1]);
           pc += 2;
           break;
         case 0x33:
           // STC (int+R),R33 RR XXXX
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           writeMem(readInt(pc) + reg[reg1],reg[reg2]);
           pc += 2;
@@ -458,15 +458,15 @@ void cpuStep(){
     case 0x4:
       if(op1 == 0x40){
           // STC (R),R  40 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           writeMem(reg[reg1], reg[reg2]);
         }
         else{
           // STC (R+R),R  4R RR 
-          reg1 = (op1 & 0xf);
-          reg2 = ((op2 & 0xf0) >> 4);
-          reg3 = (op2 & 0xf);
+          reg1 = op1 & 0xf;
+          reg2 = op2 >> 4;
+          reg3 = op2 & 0xf;
           writeMem(reg[reg1] + reg[reg2], reg[reg3]);
         }
       break;
@@ -480,7 +480,7 @@ void cpuStep(){
           break;
         case 0x51:
           // STIMER R,R   51RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           timers[reg[reg1] & 0x7] = reg[reg2];
           break;
@@ -499,7 +499,7 @@ void cpuStep(){
           break;
         case 0x54:
             // LOADRT   540R
-            reg1 = (op2 & 0xf0) >> 4;
+            reg1 = op2 >> 4;
             reg2 = op2 & 0xf;
             setRtttlAddress((uint16_t)reg[reg1]);
             setRtttlLoop(reg[reg2]);
@@ -522,7 +522,7 @@ void cpuStep(){
             break;
           case 0x56:
             // LOADRT   540R
-            reg1 = (op2 & 0xf0) >> 4;
+            reg1 = op2 >> 4;
             reg2 = op2 & 0xf;
             addTone(reg[reg1], reg[reg2]);
             break;
@@ -540,7 +540,7 @@ void cpuStep(){
         break;
       case 0x58:
         // SDATA R,R      58 RR
-        reg1 = (op2 & 0xf0) >> 4;
+        reg1 = op2 >> 4;
         reg2 = op2 & 0xf;
         reg[reg1] = saveData(reg[reg1], reg[reg2]);
         break;
@@ -548,30 +548,30 @@ void cpuStep(){
       break;
     case 0x6:
       // LDI R,(R+R)  6R RR
-      reg1 = (op1 & 0xf);
-      reg2 = ((op2 & 0xf0) >> 4);
-      reg3 = (op2 & 0xf);
+      reg1 = op1 & 0xf;
+      reg2 = op2 >> 4;
+      reg3 = op2 & 0xf;
       accum = readInt(reg[reg2] + reg[reg3]);
       reg[reg1] = (int16_t)accum;
       break;
     case 0x7:
       // STI (R+R),R  7R RR
-      reg1 = (op1 & 0xf);
-      reg2 = ((op2 & 0xf0) >> 4);
-      reg3 = (op2 & 0xf);
+      reg1 = op1 & 0xf;
+      reg2 = op2 >> 4;
+      reg3 = op2 & 0xf;
       writeInt(reg[reg1] + reg[reg2], reg[reg3]);
       break;  
     case 0x8:
       switch(op1){
         case 0x80:
           // POP R    80 0R
-          reg1 = (op2 & 0xf);
+          reg1 = op2 & 0xf;
           reg[reg1] = readInt(reg[0]);
           reg[0] += 2;
           break;
         case 0x81:
           // POPN R   81 0R
-          reg1 = (op2 & 0xf);
+          reg1 = op2 & 0xf;
           for(j = reg1; j >= 1; j--){
             reg[j] = readInt(reg[0]);
             reg[0] += 2;
@@ -579,13 +579,13 @@ void cpuStep(){
           break;
         case 0x82:
           // PUSH R   82 0R
-          reg1 = (op2 & 0xf);
+          reg1 = op2 & 0xf;
           reg[0] -= 2;
           writeInt(reg[0], reg[reg1]);
           break;
         case 0x83:
           // PUSHN R    83 0R
-          reg1 = (op2 & 0xf);
+          reg1 = op2 & 0xf;
           for(j = 1; j <= reg1; j++){
             reg[0] -= 2;
             writeInt(reg[0], reg[j]);
@@ -700,42 +700,42 @@ void cpuStep(){
       switch(op1){
         case 0xA0:
           // ADD R,R    A0 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] + reg[reg2];
           reg[reg1] = (int16_t)accum;
           break;
         case 0xA1:
           // ADC R,R    A1 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] + reg[reg2] + carry;
           reg[reg1] = (int16_t)accum;
           break;
         case 0xA2:
           // SUB R,R    A2 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] - reg[reg2];
           reg[reg1] = (int16_t)accum;
           break;
         case 0xA3:
           // SBC R,R    A3 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] - reg[reg2] - carry;
           reg[reg1] = (int16_t)accum;
           break;
         case 0xA4:
           // MUL R,R    A4 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] * reg[reg2];
           reg[reg1] = (int16_t)accum;
           break;
         case 0xA5:
           // DIV R,R    A5 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           if(reg[reg2] != 0){
             accum = reg[reg1] / reg[reg2];
@@ -749,14 +749,14 @@ void cpuStep(){
           break;
         case 0xA6:
           // AND R,R    A6 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] & reg[reg2];
           reg[reg1] = (int16_t)accum;
           break;
         case 0xA7:
           // OR R,R   A7 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] | reg[reg2];
           reg[reg1] = (int16_t)accum;
@@ -805,21 +805,21 @@ void cpuStep(){
           break;
         case 0xAA:
           // XOR R,R    AA RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] ^ reg[reg2];
           reg[reg1] = (int16_t)accum;
           break;
         case 0xAB:
           // SHL R,R    AB RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] << reg[reg2];
           reg[reg1] = (int16_t)accum;
           break;
         case 0xAC:
           // SHR R,R    AC RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] >> reg[reg2];
           reg[reg1] = (int16_t)accum;
@@ -847,14 +847,14 @@ void cpuStep(){
           break;
         case 0xAE:
           // ANDL R,R   AE RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = (reg[reg1] != 0 && reg[reg2] != 0) ? 1 : 0;
           reg[reg1] = (int16_t)accum;
           break;
         case 0xAF:
           // ORL R,R    AF RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = (reg[reg1] != 0 || reg[reg2] != 0) ? 1 : 0;
           reg[reg1] = (int16_t)accum;
@@ -870,19 +870,19 @@ void cpuStep(){
       switch(op1){
         case 0xC0:
           //CMP R,INT   C0 R0 XXXX
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           accum = reg[reg1] - readInt(pc);
           pc += 2;
           break;
         case 0xC1:
           //CMP R,R   C1 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = reg[reg1] - reg[reg2];
           break;
         case 0xC2:
           //LDF R,F   C2 RF
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           setFlags(accum);
           switch(reg2){
@@ -934,7 +934,7 @@ void cpuStep(){
             case 0x20:
               reg[reg1] = fixed_sin(reg[reg1]);
               break;
-            // SIN R   C3 3R
+            // COS R   C3 3R
             case 0x30:
               reg[reg1] = fixed_cos(reg[reg1]);
               break;
@@ -947,14 +947,14 @@ void cpuStep(){
           break;
         case 0xC4:
           // MULF R,R   C4 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = (reg[reg1] * reg[reg2]) / (1 << MULTIPLY_FP_RESOLUTION_BITS);
           reg[reg1] = (uint16_t) accum;
           break;
         case 0xC5:
           // DIVF R,R   C5 RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           accum = (reg[reg1] * (1 << MULTIPLY_FP_RESOLUTION_BITS)) / reg[reg2];
           reg[reg1] = (uint16_t) accum;
@@ -969,7 +969,7 @@ void cpuStep(){
             clearScr(bgcolor);
           else{
             //GSPRXY R,R
-            reg1 = (op2 & 0xf0) >> 4;
+            reg1 = op2 >> 4;
             reg2 = op2 & 0xf;
             reg[reg1] = getSpriteInXY(reg[reg1], reg[reg2]);
           }
@@ -1121,7 +1121,7 @@ void cpuStep(){
           break;
         case 0xD3:
           // PPIX R,R   D3RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           setPix(reg[reg1], reg[reg2], color);
           break;
@@ -1209,13 +1209,13 @@ void cpuStep(){
             break;
         case 0xD5:
           // LDSPRT R,R   D5RR
-          reg1 = (op2 & 0xf0) >> 4;//номер спрайта
+          reg1 = op2 >> 4;//номер спрайта
           reg2 = op2 & 0x0f;//адрес спрайта
           setSpr((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2]);
           break;
         case 0xD6:
           // SPALET R,R   D6 RR
-          reg1 = (op2 & 0xf0) >> 4;//номер палитры
+          reg1 = op2 >> 4;//номер палитры
           reg2 = op2 & 0xf;//цвет
           changePalette(reg[reg1] & 15, reg[reg2]);
           break;
@@ -1248,37 +1248,37 @@ void cpuStep(){
             break;
         case 0xD8:
           // SCROLL R,R   D8RR
-          reg1 = (op2 & 0xf0) >> 4;//шаг
+          reg1 = op2 >> 4;//шаг
           reg2 = op2 & 0xf;//направление
           scrollScreen(1, reg[reg2]);
           break;
         case 0xD9:
           // GETPIX R,R   D9RR
-          reg1 = (op2 & 0xf0) >> 4;//x
+          reg1 = op2 >> 4;//x
           reg2 = op2 & 0xf;//y
           reg[reg1] = getPix(reg[reg1], reg[reg2]);
           break;
         case 0xDA:
           // DRTILE R   DA RR
-          reg1 = (op2 & 0xf0) >> 4;//x
+          reg1 = op2 >> 4;//x
           reg2 = op2 & 0xf;//y
           drawTile(reg[reg1], reg[reg2]);
           break;
         case 0xDC:
           // SPRGTX R,X   DC RX
-          reg1 = (op2 & 0xf0) >> 4;//num
+          reg1 = op2 >> 4;//num
           reg2 = op2 & 0xf;//value
           reg[reg1] = getSpriteValue((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2]);
           break;
         case 0xDE:
           // AGBSPR R,R     DE RR
-          reg1 = (op2 & 0xf0) >> 4;//n1
+          reg1 = op2 >> 4;//n1
           reg2 = op2 & 0xf;//n2
           reg[reg1] = angleBetweenSprites(reg[reg1], reg[reg2]);
           break;
         case 0xDF:
           // GTILEXY R,R      DF RR
-          reg1 = (op2 & 0xf0) >> 4;
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
           reg[reg1] = getTileInXY(reg[reg1], reg[reg2], 0);
           break;
@@ -1287,7 +1287,7 @@ void cpuStep(){
     case 0xE:
       // DRSPRT R,R,R ERRR
       reg1 = (op1 & 0xf);//номер спрайта
-      reg2 = (op2 & 0xf0) >> 4;//x
+      reg2 = op2 >> 4;//x
       reg3 = op2 & 0xf;//y
       setSprPosition((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2], reg[reg3]);
       if(getSpriteValue((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, 7) < 1)
@@ -1296,7 +1296,7 @@ void cpuStep(){
     case 0xF:
       // SSPRTV R,R,R FR RR
       reg1 = (op1 & 0xf);//номер спрайта
-      reg2 = (op2 & 0xf0) >> 4;//type
+      reg2 = op2 >> 4;//type
       reg3 = op2 & 0xf;//value
       setSpriteValue((reg[reg1] < SPRITE_COUNT) ? reg[reg1] : 0, reg[reg2], reg[reg3]); 
       break;

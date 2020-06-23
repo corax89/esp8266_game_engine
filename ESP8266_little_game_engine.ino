@@ -2,9 +2,11 @@
 #include <Ticker.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <FS.h>
+#include <LittleFS.h>
 #include <TFT_eSPI.h>
 #include <EEPROM.h>
+#include "ESP8266WiFi.h"
+#include "user_interface.h"
 #include "settings.h"
 #include "acoos.h"
 
@@ -31,13 +33,6 @@ Coos <4, 0> coos;
 // Use hardware SPI
 TFT_eSPI tft = TFT_eSPI();
 
-
-// ------------------begin ESP8266'centric----------------------------------
-#include "ESP8266WiFi.h"
-extern "C" {
-  #include "user_interface.h"
-}
-// ------------------end ESP8266'centric------------------------------------
 uint8_t i2c_adress;
 uint8_t thiskey;
 char c;
@@ -59,6 +54,15 @@ uint16_t sprtpalette[16] __attribute__ ((aligned));
 
 uint16_t bgr_to_rgb(uint16_t c){
   return ((c & 0x001f) << 11) + ((c & 0xf800) >> 11) + (c & 0x07e0);
+}
+
+void WiFiOff() {
+  wifi_station_disconnect();
+  wifi_set_opmode(NULL_MODE);
+  wifi_set_sleep_type(MODEM_SLEEP_T);
+  wifi_fpm_open();
+  wifi_fpm_do_sleep(0xFFFFFFF);
+  WiFi.forceSleepBegin();
 }
 
 unsigned char hexToByte(char h){
@@ -260,10 +264,8 @@ void coos_info(void){
 }
 
 void setup() {
-  // ------------------begin ESP8266'centric----------------------------------
-  delay(1);                                // give RF section time to shutdown
+  delay(1);
   system_update_cpu_freq(FREQUENCY);
-  // ------------------end ESP8266'centric------------------------------------
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
   Serial.println();
@@ -275,8 +277,6 @@ void setup() {
   Serial.print(F(__DATE__));
   randomSeed(RANDOM_REG32);
  #ifdef ESPBOY
-  Wire.setClock(1000000);
-  Wire.begin();
   Serial.println();
   Serial.println(F("ESPboy"));
   scani2c();
@@ -299,7 +299,8 @@ void setup() {
   //initialize LCD
   mcp.pinMode(csTFTMCP23017pin, OUTPUT);
   mcp.digitalWrite(csTFTMCP23017pin, LOW);
-  tft.init();            
+  tft.begin();
+  delay(100);           
   tft.setRotation(0);
   tft.fillScreen(0x0000);
   tft.setTextSize(1);
@@ -343,23 +344,19 @@ void setup() {
   tft.setTextSize(1);
   tft.setTextColor(0xFFE0);
   tft.setCursor(2, 2);
-  tft.print(F("SPIFFS Initialize... Please wait"));
+  tft.print(F("LittleFS Initialize... Please wait"));
   //Initialize File System
-  if(SPIFFS.begin()){
-    Serial.println(F("SPIFFS Initialize....ok"));
-    FSInfo fs_info;
-    SPIFFS.info(fs_info);
-    Serial.print(F("SPIFFS Used "));
-    Serial.println(fs_info.usedBytes / 1024 / 1024);
+  if(LittleFS.begin()){
+    Serial.println(F("LittleFS Initialize....ok"));
   }
   else{
-    Serial.println(F("SPIFFS Initialization...failed"));
+    Serial.println(F("LittleFS Initialization...failed"));
     tft.fillScreen(0x0000);
     tft.setCursor(2, 2);
-    tft.print(F("SPIFFS Initialize... failed"));   
+    tft.print(F("LittleFS Initialize... failed"));   
   }
   // turn off ESP8266 RF
-  WiFi.forceSleepBegin();
+  WiFiOff();
   delay(1);
   memoryAlloc();
   loadSplashscreen();

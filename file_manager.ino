@@ -453,7 +453,7 @@ void drawVersionInFileList(){
 }
 
 void fileList(String path) {
-  fs::Dir dir = SPIFFS.openDir(path);
+  fs::Dir dir = LittleFS.openDir(path);
   char s[32];
   char thisF[32];
   int16_t lst = 0;
@@ -496,7 +496,7 @@ void fileList(String path) {
     if(skip < 0)
       skip = 0;
     lst = 1;
-    dir = SPIFFS.openDir(path);
+    dir = LittleFS.openDir(path);
     setColor(8);
     for(i = 1; i < 17; i++)
       drwLine(2, (pos - startpos) * 17 + i, 124,  (pos - startpos) * 17 + i);
@@ -636,7 +636,7 @@ void loadBinFromSPIFS(char fileName[]){
   int i;
   for(i = 0; i < RAM_SIZE; i++)
     writeMem(i, 0);
-  fs::File f = SPIFFS.open(fileName, "r");
+  fs::File f = LittleFS.open(fileName, "r");
   if(f.size() < RAM_SIZE)
     for(i = 0; i < f.size(); i++){
       writeMem(i, (uint8_t)f.read());
@@ -655,7 +655,7 @@ void loadLgeFromSPIFS(char fileName[]){
   int16_t length, position, point;
   for(i = 0; i < RAM_SIZE; i++)
     writeMem(i, 0);
-  fs::File f = SPIFFS.open(fileName, "r");
+  fs::File f = LittleFS.open(fileName, "r");
   if((char)f.read() == 'l' && (char)f.read() == 'g' && (char)f.read() == 'e'){
     l = (uint8_t)f.read();
   }

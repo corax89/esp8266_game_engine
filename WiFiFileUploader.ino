@@ -2,7 +2,7 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <ESP8266HTTPUpdateServer.h>
-#include <FS.h>
+#include <LittleFS.h>
 #include "settings.h"
 
 const char *ssid = APSSID;
@@ -92,20 +92,25 @@ void startServer(){
 }
 
 void handleFileList() {
-  Dir dir = SPIFFS.openDir("/");
-
-  String output = "";
+  Dir dir = LittleFS.openDir("/");
   FSInfo fs_info;
-  SPIFFS.info(fs_info);
+  String output;
+  LittleFS.info(fs_info);
+  Serial.print(fs_info.usedBytes);
+  Serial.print('/');
+  Serial.println(fs_info.totalBytes);
   output += fs_info.usedBytes;
   output += ':';
   output += fs_info.totalBytes;
   while (dir.next()) {
-    File entry = dir.openFile("r");
-    output += String(entry.name());
+    Serial.print(dir.fileName());
+    Serial.print(' ');
+    Serial.println(dir.fileSize());
+    if (dir.fileName()[0] != '/')
+      output += '/';
+    output += String(dir.fileName());
     output += ':';
-    output += String(entry.size());
-    entry.close();
+    output += String(dir.fileSize());
   }
   
   server.send(200, "text/json", output);
@@ -125,7 +130,7 @@ void handleFileUpload() {
       filename = "/" + filename;
     }
     Serial.print(F("handleFileUpload Name: ")); Serial.println(filename);
-    fsUploadFile = SPIFFS.open(filename, "w");
+    fsUploadFile = LittleFS.open(filename, "w");
     filename = String();
   } else if (upload.status == UPLOAD_FILE_WRITE) {
     if (fsUploadFile) {
@@ -152,10 +157,10 @@ void handleFileDelete() {
   if (path == "/") {
     return server.send_P(500, txtplain, send_bad_path);
   }
-  if (!SPIFFS.exists(path)) {
+  if (!LittleFS.exists(path)) {
     return server.send(404, txtplain, "404");
   }
-  SPIFFS.remove(path);
+  LittleFS.remove(path);
   server.send(200, txtplain, "");
   path = String();
 }
