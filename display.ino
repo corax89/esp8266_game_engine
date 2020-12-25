@@ -188,7 +188,7 @@ int16_t atan2_fp(int16_t y_fp, int16_t x_fp){
 }
 
 void display_init(){
-  for(int8_t i = 0; i < SPRITE_COUNT; i++){
+  for(int i = 0; i < SPRITE_COUNT; i++){
     sprite_table[i].address = 0;
     sprite_table[i].x = -255;
     sprite_table[i].y = -255;
@@ -206,7 +206,7 @@ void display_init(){
     sprite_table[i].oncollision = 0;
     sprite_table[i].onexitscreen = 0;
   }
-  for(int8_t i = 0; i < 16; i++){
+  for(int i = 0; i < 16; i++){
     palette[i] = bpalette[i];
     sprtpalette[i] = bpalette[i];
   }
@@ -259,6 +259,7 @@ char pause(){
         getKey();
       }
       thiskey = 0;
+      serial_used = 0;
       fileList("/");
       return 1;
     }
@@ -267,11 +268,11 @@ char pause(){
 }
 
 void drawPause(){
-  int16_t i = 0;
+  int i = 0;
   uint8_t bit;
   uint16_t adr = 0;
-  for(int8_t y = 0; y < 30; y++)
-    for(uint8_t x = 0; x < 32; x++){
+  for(int y = 0; y < 30; y++)
+    for(int x = 0; x < 32; x++){
       if(i % 8 == 0){
         bit = pgm_read_byte_near(pauseImage + adr);
         adr++;
@@ -285,9 +286,9 @@ void drawPause(){
     }
 }
 
-inline int8_t randomD(int8_t a, int8_t b) {
-  int8_t minv = a < b ? a : b;
-  int8_t maxv = a > b ? a : b;
+inline int randomD(int a, int b) {
+  int minv = a < b ? a : b;
+  int maxv = a > b ? a : b;
   return random(minv, maxv + 1);
 }
 
@@ -336,7 +337,7 @@ void setScreenResolution(uint16_t nw, uint16_t nh){
   if(rscreenHeight < 95)
     rscreenHeight = 95;
   displayXOffset = (SCREEN_REAL_WIDTH - rscreenWidth) / 2;
-  for(uint8_t i = 0; i < 128; i++)
+  for(int i = 0; i < 128; i++)
       line_is_draw[i] = 3;
   tft.fillScreen(0x0000);
 }
@@ -348,8 +349,8 @@ uint16_t getDisplayXOffset(){
 void redrawScreen(){
     int x_ratio = ( int ) ((128 << 16) / rscreenWidth);
     int y_ratio = ( int ) ((128 << 16) / rscreenHeight);
-    uint16_t x2, hx2, y2, startx, endx, startj;
-    int16_t prevy2 = -1;
+    int x2, hx2, y2, startx, endx, startj;
+    int prevy2 = -1;
     for(int i = 0; i < rscreenHeight; i++) {
       y2 = ((i * y_ratio) >> 16);
       if(line_is_draw[y2]){
@@ -391,20 +392,20 @@ void redrawScreen(){
       line_is_draw[i] = 0;
 }
 
-void setRedrawRect(uint8_t s, uint8_t e){
-  for(uint8_t i = s; i < e; i++)
+inline void setRedrawRect(uint8_t s, uint8_t e){
+  for(int i = s; i < e; i++)
      line_is_draw[i] = 3;
 }
 
 inline void drawSprFHLine(int16_t x1, int16_t x2, int16_t y, int8_t c){
-  for(int16_t  i = x1; i <= x2; i++)
+  for(int  i = x1; i <= x2; i++)
     drawSprPixel(c, i, y, 0, 0);
 }
 
 void largeParticle(int16_t x0, int16_t y0, int16_t r, int8_t c) {
   int16_t  x  = 0;
   int16_t  dx = 1;
-  int16_t  dy = r+r;
+  int16_t  dy = r + r;
   int16_t  p  = -(r>>1);
 
   drawSprFHLine(x0 - r, x0 + r, y0, c);
@@ -429,7 +430,7 @@ void largeParticle(int16_t x0, int16_t y0, int16_t r, int8_t c) {
 }
 
 void updateEmitter(){
-  int16_t i, n;
+  int i, n;
   i = emitter.count;
     for(n = 0; n < PARTICLE_COUNT; n++){
       if(i == 0)
@@ -449,7 +450,7 @@ void updateEmitter(){
 }
 
 void redrawParticles(){
-  int16_t n;
+  int n;
   uint8_t x, y;
   if(emitter.timer > 0){
     emitter.timer -= 50;
@@ -486,7 +487,7 @@ void redrawParticles(){
 }
 
 int8_t getSpriteInXY(int16_t x, int16_t y){
-  for(int8_t n = 0; n < SPRITE_COUNT; n++){
+  for(int n = 0; n < SPRITE_COUNT; n++){
     if(sprite_table[n].lives > 0)
       if((sprite_table[n].x >> 2) < x && (sprite_table[n].x >> 2) + sprite_table[n].width > x &&
         (sprite_table[n].y >> 2) < y  && (sprite_table[n].y >> 2) + sprite_table[n].height > y)
@@ -496,7 +497,7 @@ int8_t getSpriteInXY(int16_t x, int16_t y){
 }
 
 inline void moveSprites(){
-  for(uint8_t i = 0; i < SPRITE_COUNT; i++){
+  for(int i = 0; i < SPRITE_COUNT; i++){
     if(sprite_table[i].lives > 0){  
       sprite_table[i].speedy += sprite_table[i].gravity;
       sprite_table[i].x += sprite_table[i].speedx;
@@ -506,7 +507,7 @@ inline void moveSprites(){
 }
 
 inline void redrawSprites(){
-  for(uint8_t i = 0; i < SPRITE_COUNT; i++){
+  for(int i = 0; i < SPRITE_COUNT; i++){
     if(sprite_table[i].lives > 0){
       if((sprite_table[i].x >> 2) + sprite_table[i].width < 0 || (sprite_table[i].x >> 2) > 127 
         || (sprite_table[i].y >> 2) + sprite_table[i].height < 0 || (sprite_table[i].y >> 2) > 127){
@@ -535,7 +536,7 @@ uint16_t getTileInXY(int16_t x, int16_t y, int16_t collisionMapAdr){
 }
 
 void resolveCollision(uint8_t n, uint8_t i){
-  int16_t startx, starty, startix, startiy;
+  int startx, starty, startix, startiy;
   startx = sprite_table[n].x;
   starty = sprite_table[n].y;
   startix = sprite_table[i].x;
@@ -596,7 +597,7 @@ void resolveCollision(uint8_t n, uint8_t i){
 }
 
 void testSpriteCollision(){
-  uint8_t n, i;
+  int n, i;
   int16_t x0, y0, x1, y1, newspeed;
   for(n = 0; n < SPRITE_COUNT; n++)
     sprite_table[n].collision = -1;
@@ -658,8 +659,8 @@ void testSpriteCollision(){
 }
 
 inline void clearSpriteScr(){
-  for(uint8_t y = 0; y < 128; y ++)
-    for(uint8_t x = 0; x < 64; x += 4){
+  for(int y = 0; y < 128; y ++)
+    for(int x = 0; x < 64; x += 4){
       if(*((uint32_t*)&sprite_screen[SCREEN_ADDR(x,y)]) > 0)
         line_is_draw[y] |= 1 + x / 32;
     }
@@ -667,8 +668,8 @@ inline void clearSpriteScr(){
 }
 
 inline void clearScr(uint8_t color){
-  for(uint8_t y = 0; y < 128; y ++){
-    for(uint8_t x = 0; x < 128; x++)
+  for(int y = 0; y < 128; y ++){
+    for(int x = 0; x < 128; x++)
       setPix(x, y, color);
   }
 }
@@ -981,8 +982,8 @@ void drawImg(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
     return;
   }
   uint8_t p, color;
-  for(int16_t yi = 0; yi < h; yi++)
-    for(int16_t xi = 0; xi < w; xi++){
+  for(int yi = 0; yi < h; yi++)
+    for(int xi = 0; xi < w; xi++){
       p = readMem(a);
       color = (p & 0xf0) >> 4;
       if(color > 0){
@@ -1178,7 +1179,7 @@ void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8
   }
 
 void drawTile(int16_t x0, int16_t y0){
-    int16_t x, y, nx, ny;
+    int x, y, nx, ny;
     uint16_t imgadr;
     tile.x = x0;
     tile.y = y0;
@@ -1195,13 +1196,13 @@ void drawTile(int16_t x0, int16_t y0){
     }
   }
 
-inline void drawFVLine(int16_t x, int16_t y1, int16_t y2){
-  for(int16_t  i = y1; i <= y2; i++)
+inline void drawFVLine(int x, int y1, int y2){
+  for(int  i = y1; i <= y2; i++)
     setPix(x, i, color);
 }
 
-inline void drawFHLine(int16_t x1, int16_t x2, int16_t y){
-  for(int16_t  i = x1; i <= x2; i++)
+inline void drawFHLine(int x1, int x2, int y){
+  for(int  i = x1; i <= x2; i++)
     setPix(i, y, color);
 }
 
@@ -1220,12 +1221,12 @@ void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
         drawFHLine(x1, x2, y1);
       return;
     }
-    int16_t deltaX = abs(x2 - x1);
-    int16_t deltaY = abs(y2 - y1);
-    int16_t signX = x1 < x2 ? 1 : -1;
-    int16_t signY = y1 < y2 ? 1 : -1;
-    int16_t error = deltaX - deltaY;
-    int16_t error2;
+    int deltaX = abs(x2 - x1);
+    int deltaY = abs(y2 - y1);
+    int signX = x1 < x2 ? 1 : -1;
+    int signY = y1 < y2 ? 1 : -1;
+    int error = deltaX - deltaY;
+    int error2;
     setPix(x2, y2, color);
     while(x1 != x2 || y1 != y2){
       setPix(x1, y1, color);
@@ -1253,17 +1254,19 @@ inline void setClip(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
 }
 
 inline void setPix(uint16_t x, uint16_t y, uint8_t c){
-  uint8_t xi, b;
+  uint8_t xi, b, n;
   if(isClip){
     if(x < clipx1 && x >= clipx0 && y < clipy1 && y >= clipy0){
       xi = x / 2;
       b = screen[SCREEN_ADDR(xi, y)];
       if(x & 1)
-        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0xf0) + c;
+        n = (b & 0xf0) + c;
       else
-        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0x0f) + ( c << 4);
-      if(b != screen[SCREEN_ADDR(xi, y)])
+        n = (b & 0x0f) + ( c << 4);
+      if(b != n){
         line_is_draw[y] |= 1 + x / 64;
+        screen[SCREEN_ADDR(xi, y)] = n;
+      }
     }
   }
   else{
@@ -1271,26 +1274,28 @@ inline void setPix(uint16_t x, uint16_t y, uint8_t c){
       xi = x / 2;
       b = screen[SCREEN_ADDR(xi, y)];
       if(x & 1)
-        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0xf0) + c;
+        n = (b & 0xf0) + c;
       else
-        screen[SCREEN_ADDR(xi, y)] = (screen[SCREEN_ADDR(xi, y)] & 0x0f) + ( c << 4);
-      if(b != screen[SCREEN_ADDR(xi, y)])
+        n = (b & 0x0f) + ( c << 4);
+      if(b != n){
         line_is_draw[y] |= 1 + x / 64;
+        screen[SCREEN_ADDR(xi, y)] = n;
+      }
     }
   }
 }
 
 uint8_t getPix(uint8_t x, uint8_t y){
-  uint8_t b = 0;
-  uint8_t xi;
+  uint8_t xi, b;
   if(x >= 0 && x < 128 && y >= 0 && y < 128){
     xi = x / 2;
-    if(x % 2 == 0)
-      b = (screen[SCREEN_ADDR(xi, y)] & 0xf0) >> 4;
-    else
+    if(x % 2)
       b = (screen[SCREEN_ADDR(xi, y)] & 0x0f);
+    else
+      b = (screen[SCREEN_ADDR(xi, y)] & 0xf0) >> 4;
+    return b;
   }
-  return b;
+  return 0;
 }
 
 void changePalette(uint8_t n, uint16_t c){
@@ -1535,7 +1540,7 @@ void printc(char c, uint8_t fc, uint8_t bc){
 
 void printfix(int16_t value, uint8_t fc, uint8_t bc){
     char sbuffer[10];
-    const uint16_t fractPartMask = (1 << MULTIPLY_FP_RESOLUTION_BITS) - 1;
+    const uint16_t fractPartMask = (1 << fixed_res_bit) - 1;
     int16_t j; 
     if(value == 0){
         printc('0', color, bgcolor);
@@ -1544,7 +1549,7 @@ void printfix(int16_t value, uint8_t fc, uint8_t bc){
       printc('-', color, bgcolor);
       value = (~value) + 1;
     }
-    int16_t intPart = value >> MULTIPLY_FP_RESOLUTION_BITS;
+    int16_t intPart = value >> fixed_res_bit;
     value &= fractPartMask;
     
     // преобразуем целую часть
@@ -1563,7 +1568,7 @@ void printfix(int16_t value, uint8_t fc, uint8_t bc){
             value *= 10;
             //value <<= 1;
             //value += value << 2;
-            *++ptr = (uint8_t)(value >> MULTIPLY_FP_RESOLUTION_BITS) + '0';
+            *++ptr = (uint8_t)(value >> fixed_res_bit) + '0';
         }
         // удаляем завершаюшие нули
         while(ptr[0] == '0') --ptr;

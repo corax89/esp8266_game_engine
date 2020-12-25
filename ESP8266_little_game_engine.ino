@@ -35,6 +35,7 @@ TFT_eSPI tft = TFT_eSPI();
 
 uint8_t i2c_adress;
 uint8_t thiskey;
+uint8_t serial_used = 0;
 char c;
 Ticker timer;
 int delay_rtttl = 50;
@@ -43,6 +44,7 @@ unsigned long timeF,timeR;
 uint16_t timeCpu = 0,timeGpu = 0,timeSpr = 0,cpuOPS = 0,cpuOPSD = 0;
 uint8_t fps, fileIsLoad;
 uint8_t timeForRedraw = 48;
+uint8_t fixed_res_bit = 8;
 volatile uint16_t timers[8];
 
 static const uint16_t bpalette[] = {
@@ -232,7 +234,8 @@ void coos_key(void){
     getKey();
     if(thiskey == 192) //key select + start
       pause();
-    changeSettings();
+    if(!serial_used)
+      changeSettings();
   }
 }
 

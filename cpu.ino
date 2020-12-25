@@ -152,8 +152,6 @@ inline void setRedraw(){
 
 inline void setFlags(int32_t n){
   carry = (n > 0xffff) ? 1 : 0;
-  //zero = (n == 0) ? 1 : 0;
-  //negative = (n < 0) ? 1 : 0;
   negative = n >> 31;
   zero = (n == 0);
 }
@@ -284,7 +282,7 @@ int16_t fixed_sin(int x) {
     pos = !pos;
   }
   int16_t nv = x * (180 - x);
-  int32_t s = (nv * 4  * (1 << MULTIPLY_FP_RESOLUTION_BITS))/(40500 - nv);
+  int32_t s = (nv * 4  * (1 << fixed_res_bit))/(40500 - nv);
   if (pos) 
     return (int16_t)s;
   return (int16_t)-s;
@@ -300,6 +298,60 @@ inline void copyMem(uint16_t to_adr, uint16_t from_adr, uint16_t num_bytes) {
   }
 }
 
+void unpackingRLE(uint16_t to_adr, uint16_t a, uint16_t num_bytes) {
+    uint16_t  i = 0;
+    uint16_t  repeat = readMem(a);
+    a++;
+    uint16_t  color = readMem(a);
+    while (i < num_bytes) {
+      if (repeat > 0x81) {
+        writeMem(to_adr++, color);
+        i++;
+        a++;
+        repeat--;
+        color = readMem(a);
+      } else if (repeat == 0x81) {
+        repeat = readMem(a);
+        a++;
+        color = readMem(a);
+      } else if (repeat > 0) {
+        writeMem(to_adr++, color);
+        i++;
+        repeat--;
+      } else if (repeat == 0) {
+        a++;
+        repeat = readMem(a);
+        a++;
+        color = readMem(a);
+      }
+    }
+  }
+
+void unpackingLZ(uint16_t to_adr, uint16_t a, uint16_t num_bytes) {
+    uint16_t  i = 0;
+    uint16_t  j;
+    uint16_t  length;
+    uint16_t  position;
+    uint16_t  point;
+    while (i < num_bytes) {
+      if ((readMem(a) & 128) == 0) {
+        length = ((readMem(a++) & 127) << 8) + readMem(a++);
+        for (j = 0; j < length; j++) {
+          writeMem(to_adr++, readMem(a++));
+          i++;
+        }
+      } else {
+        length = (readMem(a) & 127) >> 1;
+        position = (((readMem(a++) & 1) << 8) + readMem(a++));
+        point = to_adr - position;
+        for (j = 0; j < length; j++) {
+          writeMem(to_adr++, readMem(point + j));
+          i++;
+        }
+      }
+    }
+  }
+
 #ifdef ESPBOY
 void setLedColor(uint16_t r5g6b5){
   uint8_t r,g,b;
@@ -310,13 +362,13 @@ void setLedColor(uint16_t r5g6b5){
 }
 #endif
 
-inline void cpuRun(uint16_t n){
+inline void cpuRun(int n){
   for(int i=0; i < n; i++){
     cpuStep();
   }
 }
 
-void cpuStep(){
+inline void cpuStep(){
   uint8_t op1 = readMem(pc++);
   uint8_t op2 = readMem(pc++);
   uint8_t reg1, reg2, reg3;
@@ -504,46 +556,65 @@ void cpuStep(){
             setRtttlAddress((uint16_t)reg[reg1]);
             setRtttlLoop(reg[reg2]);
             break;
-          case 0x55:
-            switch(op2){
-              // PLAYRT   5500
-              case 0x00:
-                setRtttlPlay(1);
-                break;
-              // PAUSERT    5501
-              case 0x01:
-                setRtttlPlay(0);
-                break;
-              // STOPRT   5502
-              case 0x02:
-                setRtttlPlay(2);
-                break;
-            }
-            break;
-          case 0x56:
-            // LOADRT   540R
-            reg1 = op2 >> 4;
+        case 0x55:
+          switch(op2){
+            // PLAYRT   5500
+            case 0x00:
+              setRtttlPlay(1);
+              break;
+            // PAUSERT    5501
+            case 0x01:
+              setRtttlPlay(0);
+              break;
+            // STOPRT   5502
+            case 0x02:
+              setRtttlPlay(2);
+              break;
+          }
+          break;
+        case 0x56:
+          // LOADRT   540R
+          reg1 = op2 >> 4;
+          reg2 = op2 & 0xf;
+          addTone(reg[reg1], reg[reg2]);
+          break;
+        case 0x57:
+          if (op2 < 0x10){
+            // LDATA R      57 0R
             reg2 = op2 & 0xf;
-            addTone(reg[reg1], reg[reg2]);
-            break;
-      case 0x57:
-        if (op2 < 0x10){
-          // LDATA R      57 0R
+            reg[reg2] = loadData(reg[reg2]);
+          }
+          else if (op2 < 0x20){
+            // NDATA R      57 1R
+            reg2 = op2 & 0xf;
+            setDataName(reg[reg2]);
+          }
+          break;
+        case 0x58:
+          // SDATA R,R      58 RR
+          reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
-          reg[reg2] = loadData(reg[reg2]);
-        }
-        else if (op2 < 0x20){
-          // NDATA R      57 1R
-          reg2 = op2 & 0xf;
-          setDataName(reg[reg2]);
-        }
-        break;
-      case 0x58:
-        // SDATA R,R      58 RR
-        reg1 = op2 >> 4;
-        reg2 = op2 & 0xf;
-        reg[reg1] = saveData(reg[reg1], reg[reg2]);
-        break;
+          reg[reg1] = saveData(reg[reg1], reg[reg2]);
+          break;
+        case 0x59:
+          if (op2 < 0x10) {
+            // SERBEGIN R     59 0R
+            reg2 = op2 & 0xf;
+            reg[reg2] = serialBegin();
+          } else if (op2 < 0x20) {
+            // SERAVAIL R     59 1R
+            reg2 = op2 & 0xf;
+            reg[reg2] = serialAvailable();
+          } else if (op2 < 0x30) {
+            // SERREAD R      59 2R
+            reg2 = op2 & 0xf;
+            reg[reg2] = serialRead();
+          } else if (op2 < 0x40) {
+            // SERWRITE R     59 3R
+            reg2 = op2 & 0xf;
+            serialWrite(reg[reg2]);
+          }
+          break;
       }
       break;
     case 0x6:
@@ -924,11 +995,11 @@ void cpuStep(){
           switch(reg2){
             // ITOF R   C3 0R
             case 0x00:
-              reg[reg1] = reg[reg1] * (1 << MULTIPLY_FP_RESOLUTION_BITS);
+              reg[reg1] = reg[reg1] * (1 << fixed_res_bit);
               break;
             // FTOI R   C3 1R
             case 0x10:
-              reg[reg1] = reg[reg1] / (1 << MULTIPLY_FP_RESOLUTION_BITS);
+              reg[reg1] = reg[reg1] / (1 << fixed_res_bit);
               break;
             // SIN R   C3 2R
             case 0x20:
@@ -938,10 +1009,24 @@ void cpuStep(){
             case 0x30:
               reg[reg1] = fixed_cos(reg[reg1]);
               break;
-            // MEMCPY R    C3 4R
+            // MEMCPY R C3 4R
             case 0x40:
               adr = reg[reg1];
               copyMem(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+              break;
+            // UNPKRLE R C3 5R
+            case 0x50:
+              adr = reg[reg1];
+              unpackingRLE(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+              break;
+             // UNPKLZ R C3 6R
+            case 0x60:
+              adr = reg[reg1];
+              unpackingLZ(readInt(adr + 4), readInt(adr + 2), readInt(adr));
+              break;
+            // FBITS n  C3 7n
+            case 0x70:
+              fixed_res_bit = reg1;
               break;
           }
           break;
@@ -949,14 +1034,14 @@ void cpuStep(){
           // MULF R,R   C4 RR
           reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
-          accum = (reg[reg1] * reg[reg2]) / (1 << MULTIPLY_FP_RESOLUTION_BITS);
+          accum = (reg[reg1] * reg[reg2]) / (1 << fixed_res_bit);
           reg[reg1] = (uint16_t) accum;
           break;
         case 0xC5:
           // DIVF R,R   C5 RR
           reg1 = op2 >> 4;
           reg2 = op2 & 0xf;
-          accum = (reg[reg1] * (1 << MULTIPLY_FP_RESOLUTION_BITS)) / reg[reg2];
+          accum = (reg[reg1] * (1 << fixed_res_bit)) / reg[reg2];
           reg[reg1] = (uint16_t) accum;
           break;
       }
