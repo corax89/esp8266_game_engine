@@ -26,20 +26,23 @@ inline uint8_t readMem(uint16_t adr){
 
 inline void writeInt(uint16_t adr, int16_t n){
   int8_t *nPtr;
-  nPtr = (int8_t*)&n;
-  writeMem(adr, *nPtr);
-  nPtr++;
-  adr++;
-  writeMem(adr, *nPtr);
+  if(adr < RAM_SIZE - 1){
+    nPtr = (int8_t*)&n;
+    lge_mem[adr++] = *nPtr;
+    nPtr++;
+    lge_mem[adr] = *nPtr;
+  }
 }
 
 inline int16_t readInt(uint16_t adr){
   int16_t n;
   int8_t *nPtr;
-  nPtr = (int8_t*)&n;
-  *nPtr = readMem(adr);
-  nPtr++;
-  adr++;
-  *nPtr = readMem(adr);
-  return n;
+  if(adr < RAM_SIZE - 1){
+    nPtr = (int8_t*)&n;
+    *nPtr = lge_mem[adr++];
+    nPtr++;
+    *nPtr = lge_mem[adr];
+    return n;
+  }
+  return 0;
 }

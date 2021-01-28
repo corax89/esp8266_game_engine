@@ -372,13 +372,13 @@ void redrawScreen(){
             x2 = ((j * x_ratio) >> 16);
             hx2 = x2 / 2;
             if(x2 & 1){
-              if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf) > 0)
+              if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf))
                 pix_buffer[j - startj] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
               else
                 pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
             }
             else{
-              if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) > 0)
+              if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0))
                 pix_buffer[j - startj] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
               else
                 pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
@@ -535,7 +535,7 @@ uint16_t getTileInXY(int16_t x, int16_t y, int16_t collisionMapAdr){
     return readInt(tile.adr + p * 2);
 }
 
-void resolveCollision(uint8_t n, uint8_t i){
+inline void resolveCollision(uint8_t n, uint8_t i){
   int startx, starty, startix, startiy;
   startx = sprite_table[n].x;
   starty = sprite_table[n].y;
@@ -596,7 +596,7 @@ void resolveCollision(uint8_t n, uint8_t i){
   }
 }
 
-void testSpriteCollision(){
+inline void testSpriteCollision(){
   int n, i;
   int16_t x0, y0, x1, y1, newspeed;
   for(n = 0; n < SPRITE_COUNT; n++)
@@ -683,22 +683,22 @@ void spriteDebug(){
   Serial.println();
 }
 
-void setImageSize(uint16_t size){
+inline void setImageSize(uint16_t size){
   imageSize = size;
 }
 
-void setSpr(uint16_t n, uint16_t adr){
+inline void setSpr(uint16_t n, uint16_t adr){
   sprite_table[n].address = adr;
 }
 
-void setSprPosition(int8_t n, uint16_t x, uint16_t y){
+inline void setSprPosition(int8_t n, uint16_t x, uint16_t y){
   sprite_table[n].x = x << 2;
   sprite_table[n].y = y << 2;
   sprite_table[n].previousx = x << 2;
   sprite_table[n].previousy = y << 2;
 }
 
-void spriteSetDirectionAndSpeed(int8_t n, uint16_t speed, int16_t dir){
+inline void spriteSetDirectionAndSpeed(int8_t n, uint16_t speed, int16_t dir){
   dir = dir % 360;
   if(dir < 0)
     dir += 360;
@@ -706,29 +706,29 @@ void spriteSetDirectionAndSpeed(int8_t n, uint16_t speed, int16_t dir){
   sprite_table[n].speedy = ((speed * fixed_sin(dir)) >> MULTIPLY_FP_RESOLUTION_BITS);
 }
 
-void setSprWidth(int8_t n, uint8_t w){
+inline void setSprWidth(int8_t n, uint8_t w){
   sprite_table[n].width = w;
 }
 
-void setSprHeight(int8_t n, uint8_t w){
+inline void setSprHeight(int8_t n, uint8_t w){
   sprite_table[n].height = w;
 }
 
-void setSprSpeedx(int8_t n, int8_t s){
+inline void setSprSpeedx(int8_t n, int8_t s){
   sprite_table[n].speedx = s;
 }
 
-void setSprSpeedy(int8_t n, int8_t s){
+inline void setSprSpeedy(int8_t n, int8_t s){
   sprite_table[n].speedy = s;
 }
 
-int16_t angleBetweenSprites(int8_t n1, int8_t n2){
+inline int16_t angleBetweenSprites(int8_t n1, int8_t n2){
   int16_t A = atan2_fp(sprite_table[n1].y - sprite_table[n2].y, sprite_table[n1].x - sprite_table[n2].x);
   A = (A < 0) ? A + 360 : A;
   return A;
 }
 
-int16_t getSpriteValue(int8_t n, uint8_t t){
+inline int16_t getSpriteValue(int8_t n, uint8_t t){
   switch(t){
     case 0:
       return sprite_table[n].x >> 2;
@@ -756,7 +756,7 @@ int16_t getSpriteValue(int8_t n, uint8_t t){
   return 0;
 }
 
-void setSpriteValue(int8_t n, uint8_t t, int16_t v){
+inline void setSpriteValue(int8_t n, uint8_t t, int16_t v){
  switch(t){
     case 0:
       sprite_table[n].x = v << 2;
@@ -1070,7 +1070,7 @@ void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     }
 }
 
-void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
+inline void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
   uint32_t p, x2, y2, color, s, endx;
   s = imageSize;
   endx = ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS);
@@ -1094,7 +1094,7 @@ void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
   }
 }
 
-void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
+inline void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     int16_t i = 0;
     uint8_t jx, jy;
     uint8_t repeat = readMem(adr);
@@ -1150,7 +1150,7 @@ void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     }
   }
 
-void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
+inline void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
   uint32_t p, x2, y2, s;
   s = imageSize;
   for(int32_t yi = 0; yi < ((h * s) >> MULTIPLY_FP_RESOLUTION_BITS); yi++){
@@ -1168,7 +1168,7 @@ void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
   }
 }
 
-void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8_t height){
+inline void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8_t height){
     tile.adr = adr;
     tile.imgwidth = iwidth;
     tile.imgheight = iheight;
@@ -1178,7 +1178,7 @@ void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8
     tile.pixheight = height * iheight;
   }
 
-void drawTile(int16_t x0, int16_t y0){
+inline void drawTile(int16_t x0, int16_t y0){
     int x, y, nx, ny;
     uint16_t imgadr;
     tile.x = x0;
@@ -1201,12 +1201,38 @@ inline void drawFVLine(int x, int y1, int y2){
     setPix(x, i, color);
 }
 
-inline void drawFHLine(int x1, int x2, int y){
-  for(int  i = x1; i <= x2; i++)
-    setPix(i, y, color);
+void drawFHLine(int x1, int x2, int y){
+  if(isClip){
+    if(y < clipy1 || y >= clipy0)
+      return;
+    if(x1 < clipx0)
+      x1 = clipx0;
+    if(x2 >= clipx1)
+      x2 = clipx1;
+  }
+  else{
+    if(y < 0 || y >= 128)
+      return;
+    if(x1 < 0)
+      x1 = 0;
+    if(x2 >= 127)
+      x2 = 127;
+  }
+  if(x1 & 1){
+    screen[SCREEN_ADDR(x1 / 2, y)] = (screen[SCREEN_ADDR(x1 / 2, y)] & 0xf0) + color;
+    x1++;
+  }
+  if(!(x2 & 1)){
+    screen[SCREEN_ADDR(x2 / 2, y)] = (screen[SCREEN_ADDR(x2 / 2, y)] & 0x0f) + (color << 4);
+    x2--;
+  }
+  line_is_draw[y] |= 1 + x1 / 64;
+  line_is_draw[y] |= 1 + x2 / 64;
+  for(int i = x1 / 2; i <= x2 / 2; i++)
+    screen[SCREEN_ADDR(i, y)] = (color << 4) + color;
 }
 
-void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
+inline void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     if(x1 == x2){
       if(y1 > y2)
         drawFVLine(x1, y2, y1);
@@ -1285,7 +1311,7 @@ inline void setPix(uint16_t x, uint16_t y, uint8_t c){
   }
 }
 
-uint8_t getPix(uint8_t x, uint8_t y){
+inline uint8_t getPix(uint8_t x, uint8_t y){
   uint8_t xi, b;
   if(x >= 0 && x < 128 && y >= 0 && y < 128){
     xi = x / 2;
@@ -1489,15 +1515,15 @@ void charLineUp(uint8_t n){
   }
 }
 
-void setCharX(int8_t x){
+inline void setCharX(int8_t x){
   regx = x;
 }
 
-void setCharY(int8_t y){
+inline void setCharY(int8_t y){
   regy = y;
 }
 
-int8_t getCharY(){
+inline int8_t getCharY(){
   return regy;
 }
 
@@ -1581,22 +1607,22 @@ void printfix(int16_t value, uint8_t fc, uint8_t bc){
     }
 }
 
-void setColor(uint8_t c){
+inline void setColor(uint8_t c){
   color = c & 0xf;
 }
 
-void setBgColor(uint8_t c){
+inline void setBgColor(uint8_t c){
   bgcolor = c & 0xf;
 }
 
-void drwRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
+inline void drwRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
   drawFHLine(x0, x1, y0);
   drawFHLine(x0, x1, y1);
   drawFVLine(x0, y0, y1);
   drawFVLine(x1, y0, y1);
 }
 
-void fillRect(int8_t x, int8_t y, uint8_t w, uint8_t h, uint8_t c){
+inline void fillRect(int8_t x, int8_t y, uint8_t w, uint8_t h, uint8_t c){
    for(int16_t jx = x; jx < x + w; jx++)
      for(int16_t jy = y; jy < y + h; jy++)
       setPix(jx, jy, c);
@@ -1674,7 +1700,7 @@ void fllCirc(int16_t x0, int16_t y0, int16_t r) {
   }
 }
 
-void drwTriangle( uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3){
+inline void drwTriangle( uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3){
   drwLine( x1, y1, x2, y2);
   drwLine( x2, y2, x3, y3);
   drwLine( x3, y3, x1, y1);
@@ -1839,13 +1865,13 @@ void drawString(uint16_t s, uint16_t x, uint16_t y){
     }
   }
   
-void fontload(int16_t adr, int8_t start, int8_t end){
+inline void fontload(int16_t adr, int8_t start, int8_t end){
     castomfont.adress = adr;
     castomfont.start = start & 0xff;
     castomfont.end = end & 0xff;
   }
   
-void fontsize(int16_t imgwidth, int16_t imgheight, int16_t charwidth, int16_t charheight){
+inline void fontsize(int16_t imgwidth, int16_t imgheight, int16_t charwidth, int16_t charheight){
     castomfont.imgwidth = imgwidth;
     castomfont.imgheight = imgheight;
     castomfont.charwidth = charwidth & 0xff;
