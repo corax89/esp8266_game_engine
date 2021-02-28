@@ -487,6 +487,8 @@ void fileList(String path) {
     entry.close();
     fileCount++;
   }
+  if(startpos > fileCount)
+    startpos = 0;
   Serial.print(F("find "));
   Serial.print(fileCount);
   Serial.println(F(" files"));

@@ -5,6 +5,7 @@
 #define SPRITE_IS_SCROLLED(a)           (sprite_table[a].flags & 2)
 #define SPRITE_IS_ONEBIT(a)             (sprite_table[a].flags & 4)
 #define SPRITE_IS_FLIP_HORIZONTAL(a)    (sprite_table[a].flags & 8)
+#define SET_LINE_IS_DRAW(a)             line_is_draw[(a) >> 5] |= (1 << ((a) & 31))
 
 struct sprite {
   uint16_t address;
@@ -14,12 +15,14 @@ struct sprite {
   int16_t previousy;
   uint8_t width;
   uint8_t height;
+  uint16_t size;
+  uint8_t zindex;
   int8_t speedx;
   int8_t speedy;
   int16_t angle;
   int8_t lives;
   int8_t collision;
-  uint8_t flags; //0 0 0 0 fliphorizontal isonebit scrolled solid
+  uint8_t flags; //8 - 4 color 3 fliphorizontal 2 isonebit 1 scrolled 0 solid
   int8_t gravity;
   uint16_t oncollision;
   uint16_t onexitscreen;
@@ -105,7 +108,7 @@ static const uint8_t pauseImage[] PROGMEM = {
 };
 uint8_t *screen __attribute__ ((aligned));
 uint8_t *sprite_screen __attribute__ ((aligned));
-uint8_t line_is_draw[128] __attribute__ ((aligned));
+uint32_t line_is_draw[4] __attribute__ ((aligned));
 char charArray[340] __attribute__ ((aligned));
 uint16_t pix_buffer[SCREEN_REAL_WIDTH] __attribute__ ((aligned));
 uint16_t rscreenWidth;
@@ -196,12 +199,13 @@ void display_init(){
     sprite_table[i].previousy = -255;
     sprite_table[i].width = 8;
     sprite_table[i].height = 8;
+    sprite_table[i].size = 1 << fixed_res_bit;
     sprite_table[i].speedx = 0;
     sprite_table[i].speedy = 0;
     sprite_table[i].angle = 0;
     sprite_table[i].lives = 0;
     sprite_table[i].collision = -1;
-    sprite_table[i].flags = 2; //isonebit = 0 scrolled = 1 solid = 0
+    sprite_table[i].flags = 18; //color = 1 isonebit = 0 scrolled = 1 solid = 0
     sprite_table[i].gravity = 0;
     sprite_table[i].oncollision = 0;
     sprite_table[i].onexitscreen = 0;
@@ -286,7 +290,7 @@ void drawPause(){
     }
 }
 
-inline int randomD(int a, int b) {
+int randomD(int a, int b) {
   int minv = a < b ? a : b;
   int maxv = a > b ? a : b;
   return random(minv, maxv + 1);
@@ -303,10 +307,10 @@ void setEmitter(uint16_t time, int16_t dir, int16_t dir1, int16_t speed){
   if(dir < 0)
     dir += 360;
   emitter.time = time;
-  emitter.speedx = (int8_t)((speed * fixed_cos(dir)) >> MULTIPLY_FP_RESOLUTION_BITS);
-  emitter.speedy = (int8_t)((speed * fixed_sin(dir)) >> MULTIPLY_FP_RESOLUTION_BITS);
-  emitter.speedx1 = (int8_t)((speed * fixed_cos(dir1)) >> MULTIPLY_FP_RESOLUTION_BITS);
-  emitter.speedy1 = (int8_t)((speed * fixed_sin(dir1)) >> MULTIPLY_FP_RESOLUTION_BITS);
+  emitter.speedx = (int8_t)((speed * fixed_cos(dir)) >> fixed_res_bit);
+  emitter.speedy = (int8_t)((speed * fixed_sin(dir)) >> fixed_res_bit);
+  emitter.speedx1 = (int8_t)((speed * fixed_cos(dir1)) >> fixed_res_bit);
+  emitter.speedy1 = (int8_t)((speed * fixed_sin(dir1)) >> fixed_res_bit);
 }
 
 void setEmitterSize(uint8_t width, uint8_t height, uint8_t size){
@@ -337,8 +341,8 @@ void setScreenResolution(uint16_t nw, uint16_t nh){
   if(rscreenHeight < 95)
     rscreenHeight = 95;
   displayXOffset = (SCREEN_REAL_WIDTH - rscreenWidth) / 2;
-  for(int i = 0; i < 128; i++)
-      line_is_draw[i] = 3;
+  for(int i = 0; i < 4; i++)
+      line_is_draw[i] = 0xffffffff;
   tft.fillScreen(0x0000);
 }
 
@@ -349,52 +353,42 @@ uint16_t getDisplayXOffset(){
 void redrawScreen(){
     int x_ratio = ( int ) ((128 << 16) / rscreenWidth);
     int y_ratio = ( int ) ((128 << 16) / rscreenHeight);
-    int x2, hx2, y2, startx, endx, startj;
+    int x2, hx2, y2, startx, endx, j;
     int prevy2 = -1;
     for(int i = 0; i < rscreenHeight; i++) {
       y2 = ((i * y_ratio) >> 16);
-      if(line_is_draw[y2]){
-        if(line_is_draw[y2] == 2){
-          startx = displayXOffset + rscreenWidth / 2 - 2;
-          startj = rscreenWidth / 2 - 2;
-        }
-        else{
-          startx = displayXOffset;
-          startj = 0;
-        }
-        if(line_is_draw[y2] == 1)
-          endx = displayXOffset + rscreenWidth / 2 + 2;
-        else
-          endx = displayXOffset + rscreenWidth;
+      if(line_is_draw[y2 >> 5] & (1 << (y2 & 31))){
+        startx = displayXOffset;
+        endx = displayXOffset + rscreenWidth;
         tft.setAddrWindow(startx, i, endx, i  + 1);
         if(prevy2 != y2)
-          for (int j = startj; j < rscreenWidth; j++) {
+          for (uint16_t j = 0; j < rscreenWidth; j++) {
             x2 = ((j * x_ratio) >> 16);
             hx2 = x2 / 2;
             if(x2 & 1){
               if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf))
-                pix_buffer[j - startj] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
+                pix_buffer[j] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
               else
-                pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
+                pix_buffer[j] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf)];
             }
             else{
               if((sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0))
-                pix_buffer[j - startj] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
+                pix_buffer[j] = sprtpalette[(sprite_screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
               else
-                pix_buffer[j - startj] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
+                pix_buffer[j] = palette[(screen[SCREEN_ADDR(hx2,y2)] & 0xf0) >> 4];
             }
         }
         prevy2 = y2;
         tft.pushColors(pix_buffer, endx - startx);
       }              
     }
-    for(int i = 0; i < 128; i++)
+    for(uint16_t i = 0; i < 4; i++)
       line_is_draw[i] = 0;
 }
 
 inline void setRedrawRect(uint8_t s, uint8_t e){
   for(int i = s; i < e; i++)
-     line_is_draw[i] = 3;
+    SET_LINE_IS_DRAW(i);
 }
 
 inline void drawSprFHLine(int16_t x1, int16_t x2, int16_t y, int8_t c){
@@ -450,8 +444,8 @@ void updateEmitter(){
 }
 
 void redrawParticles(){
-  int n;
-  uint8_t x, y;
+  uint16_t n;
+  uint16_t x, y;
   if(emitter.timer > 0){
     emitter.timer -= 50;
     updateEmitter();
@@ -469,7 +463,7 @@ void redrawParticles(){
           sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0xf0) + (particles[n].color & 0x0f);
         else
           sprite_screen[SCREEN_ADDR(x,y)] = (sprite_screen[SCREEN_ADDR(x,y)] & 0x0f) + ((particles[n].color & 0x0f) << 4);
-        line_is_draw[y] |= 1 + x / 32;
+        SET_LINE_IS_DRAW(y);
       }
       particles[n].time -= 50;
       if(random(0,2)){
@@ -486,7 +480,7 @@ void redrawParticles(){
     }
 }
 
-int8_t getSpriteInXY(int16_t x, int16_t y){
+int16_t getSpriteInXY(int16_t x, int16_t y){
   for(int n = 0; n < SPRITE_COUNT; n++){
     if(sprite_table[n].lives > 0)
       if((sprite_table[n].x >> 2) < x && (sprite_table[n].x >> 2) + sprite_table[n].width > x &&
@@ -507,7 +501,29 @@ inline void moveSprites(){
 }
 
 inline void redrawSprites(){
-  for(int i = 0; i < SPRITE_COUNT; i++){
+  int16_t i, j, ind, tempa, tempb;
+  for(i = 0; i < SPRITE_COUNT; i++){
+    pix_buffer[i + SPRITE_COUNT] = i;
+    pix_buffer[i] = sprite_table[i].zindex;
+  }
+  for (j = 0; j < SPRITE_COUNT; ++j) {
+    tempa = pix_buffer[j];
+    tempb = pix_buffer[j + SPRITE_COUNT];
+    ind = j;
+    for (i = j + 1; i < SPRITE_COUNT; ++i) {
+      if (tempa > pix_buffer[i]) {
+        tempa = pix_buffer[j];
+        tempb = pix_buffer[j + SPRITE_COUNT];
+        ind = i;
+      }
+    }
+    pix_buffer[ind] = pix_buffer[j];
+    pix_buffer[ind + SPRITE_COUNT] = pix_buffer[j + SPRITE_COUNT];
+    pix_buffer[j] = tempa;
+    pix_buffer[j + SPRITE_COUNT] = tempb;
+  }
+  for(j = 0; j < SPRITE_COUNT; j++){
+    i = pix_buffer[j + SPRITE_COUNT];
     if(sprite_table[i].lives > 0){
       if((sprite_table[i].x >> 2) + sprite_table[i].width < 0 || (sprite_table[i].x >> 2) > 127 
         || (sprite_table[i].y >> 2) + sprite_table[i].height < 0 || (sprite_table[i].y >> 2) > 127){
@@ -535,7 +551,7 @@ uint16_t getTileInXY(int16_t x, int16_t y, int16_t collisionMapAdr){
     return readInt(tile.adr + p * 2);
 }
 
-inline void resolveCollision(uint8_t n, uint8_t i){
+void resolveCollision(uint8_t n, uint8_t i){
   int startx, starty, startix, startiy;
   startx = sprite_table[n].x;
   starty = sprite_table[n].y;
@@ -599,18 +615,23 @@ inline void resolveCollision(uint8_t n, uint8_t i){
 inline void testSpriteCollision(){
   int n, i;
   int16_t x0, y0, x1, y1, newspeed;
+  int32_t iwidth, iheight, nwidth, nheight;
   for(n = 0; n < SPRITE_COUNT; n++)
     sprite_table[n].collision = -1;
   for(n = 0; n < SPRITE_COUNT; n++){
     if(sprite_table[n].lives > 0){
       x0 = sprite_table[n].x >> 2;
       y0 = sprite_table[n].y >> 2;
+      nwidth = (sprite_table[n].width * sprite_table[n].size) >> fixed_res_bit;
+      nheight = (sprite_table[n].height * sprite_table[n].size) >> fixed_res_bit;
       for(i = 0; i < n; i++){
         if(sprite_table[i].lives > 0){
           x1 = sprite_table[i].x >> 2;
           y1 = sprite_table[i].y >> 2;
-          if(x0 < x1 + sprite_table[i].width && x0 + sprite_table[n].width > x1 
-          && y0 < y1 + sprite_table[i].height && y0 + sprite_table[n].height > y1){
+          iwidth = (sprite_table[i].width * sprite_table[i].size) >> fixed_res_bit;
+          iheight = (sprite_table[i].height * sprite_table[i].size) >> fixed_res_bit;
+          if(x0 < x1 + iwidth && x0 + nwidth > x1 
+          && y0 < y1 + iheight && y0 + nheight > y1){
             sprite_table[n].collision = i;
             sprite_table[i].collision = n;
             if(sprite_table[n].oncollision > 0)
@@ -626,20 +647,20 @@ inline void testSpriteCollision(){
       if((SPRITE_IS_SOLID(n)) && tile.adr > 0){
             x0 = sprite_table[n].x >> 2;
             y0 = sprite_table[n].y >> 2;
-            if(getTileInXY(x0, y0, tile.collisionMap) || getTileInXY(x0 + sprite_table[n].width, y0, tile.collisionMap)
-              || getTileInXY(x0 , y0 + sprite_table[n].height, tile.collisionMap) || getTileInXY(x0 + sprite_table[n].width, y0 + sprite_table[n].height, tile.collisionMap)){
+            if(getTileInXY(x0, y0, tile.collisionMap) || getTileInXY(x0 + nwidth, y0, tile.collisionMap)
+              || getTileInXY(x0 , y0 + nheight, tile.collisionMap) || getTileInXY(x0 + nwidth, y0 + nheight, tile.collisionMap)){
                 sprite_table[n].y = sprite_table[n].y - sprite_table[n].speedy;
                 sprite_table[n].speedy = sprite_table[n].speedy / 2 - sprite_table[n].gravity;
                 y0 = sprite_table[n].y >> 2;
-                if(getTileInXY(x0, y0, tile.collisionMap) || getTileInXY(x0 + sprite_table[n].width, y0, tile.collisionMap)
-                  || getTileInXY(x0 , y0 + sprite_table[n].height, tile.collisionMap) || getTileInXY(x0 + sprite_table[n].width, y0 + sprite_table[n].height, tile.collisionMap)){
+                if(getTileInXY(x0, y0, tile.collisionMap) || getTileInXY(x0 + nwidth, y0, tile.collisionMap)
+                  || getTileInXY(x0 , y0 + nheight, tile.collisionMap) || getTileInXY(x0 + nwidth, y0 + nheight, tile.collisionMap)){
                     sprite_table[n].x = sprite_table[n].x - sprite_table[n].speedx;
                     sprite_table[n].speedx = (sprite_table[n].x - (sprite_table[n].x - sprite_table[n].speedx)) / 2;
                   }
                 x0 = sprite_table[n].x >> 2;
                 y0 = sprite_table[n].y >> 2;
-                if(getTileInXY(x0, y0, tile.collisionMap) || getTileInXY(x0 + sprite_table[n].width, y0, tile.collisionMap)
-                  || getTileInXY(x0 , y0 + sprite_table[n].height, tile.collisionMap) || getTileInXY(x0 + sprite_table[n].width, y0 + sprite_table[n].height, tile.collisionMap)){
+                if(getTileInXY(x0, y0, tile.collisionMap) || getTileInXY(x0 + nwidth, y0, tile.collisionMap)
+                  || getTileInXY(x0 , y0 + nheight, tile.collisionMap) || getTileInXY(x0 + nwidth, y0 + nheight, tile.collisionMap)){
                     sprite_table[n].x = sprite_table[n].previousx;
                     sprite_table[n].y = sprite_table[n].previousy;
                   }
@@ -662,12 +683,12 @@ inline void clearSpriteScr(){
   for(int y = 0; y < 128; y ++)
     for(int x = 0; x < 64; x += 4){
       if(*((uint32_t*)&sprite_screen[SCREEN_ADDR(x,y)]) > 0)
-        line_is_draw[y] |= 1 + x / 32;
+        SET_LINE_IS_DRAW(y);
     }
   memset(sprite_screen, 0, SCREEN_SIZE);
 }
 
-inline void clearScr(uint8_t color){
+void clearScr(uint8_t color){
   for(int y = 0; y < 128; y ++){
     for(int x = 0; x < 128; x++)
       setPix(x, y, color);
@@ -684,51 +705,55 @@ void spriteDebug(){
 }
 
 inline void setImageSize(uint16_t size){
-  imageSize = size;
+  imageSize = size & 0x7fff;
 }
 
 inline void setSpr(uint16_t n, uint16_t adr){
   sprite_table[n].address = adr;
 }
 
-inline void setSprPosition(int8_t n, uint16_t x, uint16_t y){
+void setSprPosition(uint16_t n, uint16_t x, uint16_t y){
   sprite_table[n].x = x << 2;
   sprite_table[n].y = y << 2;
   sprite_table[n].previousx = x << 2;
   sprite_table[n].previousy = y << 2;
 }
 
-inline void spriteSetDirectionAndSpeed(int8_t n, uint16_t speed, int16_t dir){
+void spriteSetDirectionAndSpeed(uint16_t n, uint16_t speed, int16_t dir){
   dir = dir % 360;
   if(dir < 0)
     dir += 360;
-  sprite_table[n].speedx = ((speed * fixed_cos(dir)) >> MULTIPLY_FP_RESOLUTION_BITS);
-  sprite_table[n].speedy = ((speed * fixed_sin(dir)) >> MULTIPLY_FP_RESOLUTION_BITS);
+  sprite_table[n].speedx = ((speed * fixed_cos(dir)) >> fixed_res_bit);
+  sprite_table[n].speedy = ((speed * fixed_sin(dir)) >> fixed_res_bit);
 }
 
-inline void setSprWidth(int8_t n, uint8_t w){
+inline void setSprWidth(uint16_t n, uint8_t w){
   sprite_table[n].width = w;
 }
 
-inline void setSprHeight(int8_t n, uint8_t w){
+inline void setSprHeight(uint16_t n, uint8_t w){
   sprite_table[n].height = w;
 }
 
-inline void setSprSpeedx(int8_t n, int8_t s){
+inline void setSprSize(uint16_t n, uint16_t s){
+  sprite_table[n].size = s & 0x7fff;
+}
+
+inline void setSprSpeedx(uint16_t n, int8_t s){
   sprite_table[n].speedx = s;
 }
 
-inline void setSprSpeedy(int8_t n, int8_t s){
+inline void setSprSpeedy(uint16_t n, int8_t s){
   sprite_table[n].speedy = s;
 }
 
-inline int16_t angleBetweenSprites(int8_t n1, int8_t n2){
+int16_t angleBetweenSprites(uint16_t n1, int8_t n2){
   int16_t A = atan2_fp(sprite_table[n1].y - sprite_table[n2].y, sprite_table[n1].x - sprite_table[n2].x);
   A = (A < 0) ? A + 360 : A;
   return A;
 }
 
-inline int16_t getSpriteValue(int8_t n, uint8_t t){
+int16_t getSpriteValue(uint16_t n, uint16_t t){
   switch(t){
     case 0:
       return sprite_table[n].x >> 2;
@@ -756,7 +781,7 @@ inline int16_t getSpriteValue(int8_t n, uint8_t t){
   return 0;
 }
 
-inline void setSpriteValue(int8_t n, uint8_t t, int16_t v){
+void setSpriteValue(uint16_t n, uint16_t t, int16_t v){
  switch(t){
     case 0:
       sprite_table[n].x = v << 2;
@@ -820,164 +845,334 @@ inline void setSpriteValue(int8_t n, uint8_t t, int16_t v){
       else
         sprite_table[n].flags &= ~0x08;
       return;
+    case 16:
+      sprite_table[n].zindex = (uint8_t)v;
+      return;
+    case 17:
+      sprite_table[n].flags &= 0x0f;
+      sprite_table[n].flags |= (uint8_t) v << 4 ;
+      return;
  }
 }
 
-inline void drawRotateSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
+inline void drawRotateSprPixel(int8_t pixel, int16_t x0, int16_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
   int16_t nx = hw + (((x - hw) * c - (y - hh) * s) >> MULTIPLY_FP_RESOLUTION_BITS);
   int16_t ny = hh + (((y - hh) * c + (x - hw) * s) >> MULTIPLY_FP_RESOLUTION_BITS);
   int16_t nnx = nx / 2;
-  int8_t nnx0 = x0 / 2;
+  int16_t nnx0 = x0 / 2;
   if(nnx0 + nnx >= 0 && nnx0 + nnx < 64 && y0 + ny >= 0 && y0 + ny < 128){
     if(nx & 1)
       sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] = (sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] & 0xf0) + pixel;
     else
       sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] = (sprite_screen[SCREEN_ADDR(nnx0 + nnx, y0 + ny)] & 0x0f) + (pixel << 4);
-    line_is_draw[y0 + ny] |= 1 + (nnx0 + nnx) / 32;
+    SET_LINE_IS_DRAW(y0 + ny);
   }
 }
 
-inline void drawSprPixel(int8_t pixel, int8_t x0, int8_t y0, int16_t x, int16_t y){
+inline void drawSprPixel(int8_t pixel, int16_t x0, int16_t y0, int16_t x, int16_t y){
   if(x0 + x >= 0 && x0 + x < 128 && y0 + y >= 0 && y0 + y < 128){
     if((x0 + x) & 1)
       sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] = (sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] & 0xf0) + pixel;
     else
       sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] = (sprite_screen[SCREEN_ADDR((x0 + x) / 2, y0 + y)] & 0x0f) + (pixel << 4);
-    line_is_draw[y0 + y] |= 1 + (x0 + x) / 64;
+    SET_LINE_IS_DRAW(y0 + y);
   }
 }
 
-void drawSpr(int8_t n, int16_t x, int16_t y){
+void drawSpr(int16_t n, int16_t x, int16_t y){
   uint16_t adr = sprite_table[n].address;
-  uint8_t w = sprite_table[n].width;
-  uint8_t h = sprite_table[n].height;
-  uint8_t ww = w;
+  uint16_t w = sprite_table[n].width;
+  uint16_t h = sprite_table[n].height;
+  uint16_t ww = w;
   int16_t c, s;
-  uint8_t pixel, ibit, i;
+  uint16_t sz, x1, y1, x2, y2, endx, endy, i;
+  uint8_t pixel, ibit;
   w = w / 2;
+  sz = sprite_table[n].size;
   if(!SPRITE_IS_ONEBIT(n)){
     if(!sprite_table[n].angle){
       if(SPRITE_IS_FLIP_HORIZONTAL(n)){
-        for(int8_t y1 = 0; y1 < h; y1 ++)
-          if(y1 + y >= -h && y1 + y < 128 + h){
-            for(int8_t x1 = 0; x1 < w; x1++){
-              pixel = readMem(adr + x1 + y1 * w);
-              if((pixel & 0xf0) > 0)
-                drawSprPixel(pixel >> 4, x, y, ww - x1 * 2, y1);
-              if((pixel & 0x0f) > 0)
-                drawSprPixel(pixel & 0xf, x, y, ww - (x1 * 2 + 1), y1);
+        if(sz != 1 << fixed_res_bit){
+          endx = ((ww * sz) >> fixed_res_bit);
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < endx; x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              pixel = readMem(adr + x2 / 2 + (y2 * ww) / 2);
+              if(x2 & 1){
+                pixel = (pixel & 0x0f);
+              }
+              else{
+                pixel = (pixel & 0xf0) >> 4;
+              }
+              if(pixel)
+                drawSprPixel(pixel, x, y, endx - x1, y1);
             }
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1++){
+            if(y1 + y >= -h && y1 + y < 128 + h){
+              for(x1 = 0; x1 < w; x1++){
+                pixel = readMem(adr + x1 + y1 * w);
+                if((pixel & 0xf0) > 0)
+                  drawSprPixel(pixel >> 4, x, y, ww - x1 * 2, y1);
+                if((pixel & 0x0f) > 0)
+                  drawSprPixel(pixel & 0xf, x, y, ww - (x1 * 2 + 1), y1);
+              }
+            }
+          }
+        }
       }
       else{
-        for(int8_t y1 = 0; y1 < h; y1 ++)
-          if(y1 + y >= -h && y1 + y < 128 + h){
-            for(int8_t x1 = 0; x1 < w; x1++){
-              pixel = readMem(adr + x1 + y1 * w);
-              if((pixel & 0xf0) > 0)
-                drawSprPixel(pixel >> 4, x, y, x1 * 2, y1);
-              if((pixel & 0x0f) > 0)
-                drawSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1);
+        if(sz != 1 << fixed_res_bit){
+          endx = ((ww * sz) >> fixed_res_bit);
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < endx; x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              pixel = readMem(adr + x2 / 2 + (y2 * ww) / 2);
+              if(x2 & 1){
+                pixel = (pixel & 0x0f);
+              }
+              else{
+                pixel = (pixel & 0xf0) >> 4;
+              }
+              if(pixel)
+                drawSprPixel(pixel, x, y, x1, y1);
             }
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1 ++){
+            if(y1 + y >= -h && y1 + y < 128 + h){
+              for(x1 = 0; x1 < w; x1++){
+                pixel = readMem(adr + x1 + y1 * w);
+                if((pixel & 0xf0) > 0)
+                  drawSprPixel(pixel >> 4, x, y, x1 * 2, y1);
+                if((pixel & 0x0f) > 0)
+                  drawSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1);
+              }
+            }
+          }
+        }
       }
     }
     else{
       c = fixed_cos(sprite_table[n].angle);
       s = fixed_sin(sprite_table[n].angle);
       if(SPRITE_IS_FLIP_HORIZONTAL(n)){
-        for(int8_t y1 = 0; y1 < h; y1 ++)
-          if(y1 + y >= -h && y1 + y < 128 + h){
-            for(int8_t x1 = 0; x1 < w; x1++)
-              if(x1 + x >= -w && x1 + x < 128 + w){
-                pixel = readMem(adr + x1 + y1 * w);
-                if((pixel & 0xf0) > 0)
-                  drawRotateSprPixel(pixel >> 4, x, y, ww - x1 * 2, y1, w, h / 2, c, s);
-                if((pixel & 0x0f) > 0)
-                  drawRotateSprPixel(pixel & 0xf, x, y, ww - (x1 * 2 + 1), y1, w, h / 2, c, s);
-              }   
+        if(sz != 1 << fixed_res_bit){
+          endx = ((ww * sz) >> fixed_res_bit);
+          endy = ((h * sz / 2) >> fixed_res_bit);
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < endx; x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              pixel = readMem(adr + x2 / 2 + (y2 * ww) / 2);
+              if(x2 & 1){
+                pixel = (pixel & 0x0f);
+              }
+              else{
+                pixel = (pixel & 0xf0) >> 4;
+              }
+              if(pixel)
+                drawRotateSprPixel(pixel, x, y, endx - x1, y1, endx / 2, endy, c, s);
+            }
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1 ++){
+            if(y1 + y >= -h && y1 + y < 128 + h){
+              for(x1 = 0; x1 < w; x1++){
+                if(x1 + x >= -w && x1 + x < 128 + w){
+                  pixel = readMem(adr + x1 + y1 * w);
+                  if((pixel & 0xf0) > 0)
+                    drawRotateSprPixel(pixel >> 4, x, y, ww - x1 * 2, y1, w, h / 2, c, s);
+                  if((pixel & 0x0f) > 0)
+                    drawRotateSprPixel(pixel & 0xf, x, y, ww - (x1 * 2 + 1), y1, w, h / 2, c, s);
+                }
+              }
+            }
+          }
+        }
       }
       else{
-        for(int8_t y1 = 0; y1 < h; y1 ++)
-          if(y1 + y >= -h && y1 + y < 128 + h){
-            for(int8_t x1 = 0; x1 < w; x1++)
-              if(x1 + x >= -w && x1 + x < 128 + w){
-                pixel = readMem(adr + x1 + y1 * w);
-                if((pixel & 0xf0) > 0)
-                  drawRotateSprPixel(pixel >> 4, x, y, x1 * 2, y1, w, h / 2, c, s);
-                if((pixel & 0x0f) > 0)
-                  drawRotateSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1, w, h / 2, c, s);
-              }   
+        if(sz != 1 << fixed_res_bit){
+          endx = ((ww * sz) >> fixed_res_bit);
+          endy = ((h * sz / 2) >> fixed_res_bit);
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < endx; x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              pixel = readMem(adr + x2 / 2 + (y2 * ww) / 2);
+              if(x2 & 1){
+                pixel = (pixel & 0x0f);
+              }
+              else{
+                pixel = (pixel & 0xf0) >> 4;
+              }
+              if(pixel)
+                drawRotateSprPixel(pixel, x, y, x1, y1, endx / 2, endy, c, s);
+            }
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1 ++){
+            if(y1 + y >= -h && y1 + y < 128 + h){
+              for(x1 = 0; x1 < w; x1++){
+                if(x1 + x >= -w && x1 + x < 128 + w){
+                  pixel = readMem(adr + x1 + y1 * w);
+                  if((pixel & 0xf0) > 0)
+                    drawRotateSprPixel(pixel >> 4, x, y, x1 * 2, y1, w, h / 2, c, s);
+                  if((pixel & 0x0f) > 0)
+                    drawRotateSprPixel(pixel & 0xf, x, y, x1 * 2 + 1, y1, w, h / 2, c, s);
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
   else{
     i = 0;
+    pixel = sprite_table[n].flags >> 4;
     if(!sprite_table[n].angle){
       if(SPRITE_IS_FLIP_HORIZONTAL(n)){
-        for(int8_t y1 = 0; y1 < h; y1++)
-          for(int8_t x1 = 0; x1 < ww; x1++){
-            if(i % 8 == 0){
-              ibit = readMem(adr);
-              adr++;
+        if(sz != 1 << fixed_res_bit){
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < ((ww * sz) >> fixed_res_bit); x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              ibit = readMem(adr + (x2 + y2 * ww) / 8);
+              if(ibit & (1 << (7 - ((x2 + y2 * ww) & 7))))
+                  drawSprPixel(pixel, x, y, ww - x1, y1);
             }
-            if(ibit & 0x80)
-              drawSprPixel(color, x, y, ww - x1, y1);
-            ibit = ibit << 1;
-            i++;
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1++){
+            for(x1 = 0; x1 < ww; x1++){
+              if(i % 8 == 0){
+                ibit = readMem(adr);
+                adr++;
+              }
+              if(ibit & 0x80)
+                drawSprPixel(pixel, x, y, ww - x1, y1);
+              ibit = ibit << 1;
+              i++;
+            }
+          }
+        }
       }
       else{
-        for(int8_t y1 = 0; y1 < h; y1++)
-          for(int8_t x1 = 0; x1 < ww; x1++){
-            if(i % 8 == 0){
-              ibit = readMem(adr);
-              adr++;
+        if(sz != 1 << fixed_res_bit){
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < ((ww * sz) >> fixed_res_bit); x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              ibit = readMem(adr + (x2 + y2 * ww) / 8);
+              if(ibit & (1 << (7 - ((x2 + y2 * ww) & 7))))
+                  drawSprPixel(pixel, x, y, x1, y1);
             }
-            if(ibit & 0x80)
-              drawSprPixel(color, x, y, x1, y1);
-            ibit = ibit << 1;
-            i++;
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1++){
+            for(x1 = 0; x1 < ww; x1++){
+              if(i % 8 == 0){
+                ibit = readMem(adr);
+                adr++;
+              }
+              if(ibit & 0x80)
+                drawSprPixel(pixel, x, y, x1, y1);
+              ibit = ibit << 1;
+              i++;
+            }
+          }
+        }
       }
     }
     else{
       c = fixed_cos(sprite_table[n].angle);
       s = fixed_sin(sprite_table[n].angle);
       if(SPRITE_IS_FLIP_HORIZONTAL(n)){
-        for(int8_t y1 = 0; y1 < h; y1++)
-          for(int8_t x1 = 0; x1 < ww; x1++){
-            if(i % 8 == 0){
-              ibit = readMem(adr);
-              adr++;
+        if(sz != 1 << fixed_res_bit){
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < ((ww * sz) >> fixed_res_bit); x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              ibit = readMem(adr + (x2 + y2 * ww) / 8);
+              if(ibit & (1 << (7 - ((x2 + y2 * ww) & 7))))
+                drawRotateSprPixel(pixel, x, y, ww - x1, y1, w, h/2, c, s);
             }
-            if(ibit & 0x80)
-              drawRotateSprPixel(color, x, y, ww - x1, y1, w, h/2, c, s);
-            ibit = ibit << 1;
-            i++;
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1++){
+            for(x1 = 0; x1 < ww; x1++){
+              if(i % 8 == 0){
+                ibit = readMem(adr);
+                adr++;
+              }
+              if(ibit & 0x80)
+                drawRotateSprPixel(pixel, x, y, ww - x1, y1, w, h/2, c, s);
+              ibit = ibit << 1;
+              i++;
+            }
+          }
+        }
       }
       else{
-        for(int8_t y1 = 0; y1 < h; y1++)
-          for(int8_t x1 = 0; x1 < ww; x1++){
-            if(i % 8 == 0){
-              ibit = readMem(adr);
-              adr++;
+        if(sz != 1 << fixed_res_bit){
+          for(y1 = 0; y1 < ((h * sz) >> fixed_res_bit); y1++){
+            y2 = ((y1 << fixed_res_bit) + 1) / sz;
+            if((y + y1) > 128)
+              return;
+            for(x1 = 0; x1 < ((ww * sz) >> fixed_res_bit); x1++){
+              x2 = ((x1 << fixed_res_bit) + 1) / sz;
+              ibit = readMem(adr + (x2 + y2 * ww) / 8);
+              if(ibit & (1 << (7 - ((x2 + y2 * ww) & 7))))
+                drawRotateSprPixel(pixel, x, y, x1, y1, w, h/2, c, s);
             }
-            if(ibit & 0x80)
-              drawRotateSprPixel(color, x, y, x1, y1, w, h/2, c, s);
-            ibit = ibit << 1;
-            i++;
           }
+        }
+        else{
+          for(y1 = 0; y1 < h; y1++){
+            for(x1 = 0; x1 < ww; x1++){
+              if(i % 8 == 0){
+                ibit = readMem(adr);
+                adr++;
+              }
+              if(ibit & 0x80)
+                drawRotateSprPixel(pixel, x, y, x1, y1, w, h/2, c, s);
+              ibit = ibit << 1;
+              i++;
+            }
+          }
+        }
       }
     }
   }
 }
 
 void drawImg(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
-  if(!(imageSize <= 1 || imageSize == (1 << MULTIPLY_FP_RESOLUTION_BITS))){
+  if(!(imageSize <= 1 || imageSize == (1 << fixed_res_bit))){
     drawImgS(a, x, y, w, h);
     return;
   }
@@ -999,7 +1194,7 @@ void drawImg(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
 }
 
 void drawImgRLE(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
-    if(!(imageSize <= 1 || imageSize == (1 << MULTIPLY_FP_RESOLUTION_BITS))){
+    if(!(imageSize <= 1 || imageSize == (1 << fixed_res_bit))){
       drawImgRLES(adr, x1, y1, w, h);
       return;
     }
@@ -1049,7 +1244,7 @@ void drawImgRLE(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
   }
 
 void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
-  if(!(imageSize <= 1 || imageSize == (1 << MULTIPLY_FP_RESOLUTION_BITS))){
+  if(!(imageSize <= 1 || imageSize == (1 << fixed_res_bit))){
     drawImageBitS(adr, x1, y1, w, h);
     return;
   }
@@ -1070,16 +1265,16 @@ void drawImageBit(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     }
 }
 
-inline void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
+void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
   uint32_t p, x2, y2, color, s, endx;
   s = imageSize;
-  endx = ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS);
-  for(int32_t yi = 0; yi < ((h * s) >> MULTIPLY_FP_RESOLUTION_BITS); yi++){
-    y2 = ((yi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+  endx = ((w * s) >> fixed_res_bit);
+  for(int32_t yi = 0; yi < ((h * s) >> fixed_res_bit); yi++){
+    y2 = ((yi << fixed_res_bit) + 1) / s;
     if((y + yi) > 128)
       return;
     for(int32_t xi = 0; xi < endx; xi++){
-      x2 = ((xi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+      x2 = ((xi << fixed_res_bit) + 1) / s;
       if(x2 & 1){
         p = readMem(a + x2 / 2 + (y2 * w) / 2);
         color = (p & 0x0f);
@@ -1094,14 +1289,14 @@ inline void drawImgS(int16_t a, int16_t x, int16_t y, int32_t w, int32_t h){
   }
 }
 
-inline void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
+void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t h){
     int16_t i = 0;
     uint8_t jx, jy;
     uint8_t repeat = readMem(adr);
     adr++;
     int8_t color1 = (readMem(adr) & 0xf0) >> 4;
     int8_t color2 = readMem(adr) & 0xf;
-    uint8_t s = imageSize >> MULTIPLY_FP_RESOLUTION_BITS;
+    uint8_t s = imageSize >> fixed_res_bit;
     while(i < w * h){
       if(repeat > 0x81){
         if(color1 > 0){
@@ -1150,15 +1345,15 @@ inline void drawImgRLES(int16_t adr, int16_t x1, int16_t y1, int16_t w, int16_t 
     }
   }
 
-inline void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
+void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h){
   uint32_t p, x2, y2, s;
   s = imageSize;
-  for(int32_t yi = 0; yi < ((h * s) >> MULTIPLY_FP_RESOLUTION_BITS); yi++){
-    y2 = ((yi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+  for(int32_t yi = 0; yi < ((h * s) >> fixed_res_bit); yi++){
+    y2 = ((yi << fixed_res_bit) + 1) / s;
     if((y + yi) > 128)
       return;
-    for(int32_t xi = 0; xi < ((w * s) >> MULTIPLY_FP_RESOLUTION_BITS); xi++){
-      x2 = ((xi << MULTIPLY_FP_RESOLUTION_BITS) + 1) / s;
+    for(int32_t xi = 0; xi < ((w * s) >> fixed_res_bit); xi++){
+      x2 = ((xi << fixed_res_bit) + 1) / s;
       p = readMem(a + (x2 + y2 * w) / 8);
       if(p & (1 << (7 - ((x2 + y2 * w) & 7))))
           setPix(x + xi, y + yi, color);
@@ -1168,7 +1363,7 @@ inline void drawImageBitS(int16_t a, int16_t x, int16_t y, int16_t w, int16_t h)
   }
 }
 
-inline void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8_t height){
+void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width, uint8_t height){
     tile.adr = adr;
     tile.imgwidth = iwidth;
     tile.imgheight = iheight;
@@ -1178,7 +1373,7 @@ inline void loadTile(int16_t adr, uint8_t iwidth, uint8_t iheight, uint8_t width
     tile.pixheight = height * iheight;
   }
 
-inline void drawTile(int16_t x0, int16_t y0){
+void drawTile(int16_t x0, int16_t y0){
     int x, y, nx, ny;
     uint16_t imgadr;
     tile.x = x0;
@@ -1201,7 +1396,9 @@ inline void drawFVLine(int x, int y1, int y2){
     setPix(x, i, color);
 }
 
-void drawFHLine(int x1, int x2, int y){
+void drawFHLine(int16_t x1, int16_t x2, uint16_t y){
+  uint8_t *nPtr, c;
+  uint16_t i;
   if(isClip){
     if(y < clipy1 || y >= clipy0)
       return;
@@ -1211,7 +1408,7 @@ void drawFHLine(int x1, int x2, int y){
       x2 = clipx1;
   }
   else{
-    if(y < 0 || y >= 128)
+    if(y >= 128)
       return;
     if(x1 < 0)
       x1 = 0;
@@ -1226,13 +1423,15 @@ void drawFHLine(int x1, int x2, int y){
     screen[SCREEN_ADDR(x2 / 2, y)] = (screen[SCREEN_ADDR(x2 / 2, y)] & 0x0f) + (color << 4);
     x2--;
   }
-  line_is_draw[y] |= 1 + x1 / 64;
-  line_is_draw[y] |= 1 + x2 / 64;
-  for(int i = x1 / 2; i <= x2 / 2; i++)
-    screen[SCREEN_ADDR(i, y)] = (color << 4) + color;
+  SET_LINE_IS_DRAW(y);
+  i = x1 / 2;
+  c = (color << 4) + color;
+  nPtr = (uint8_t*)&screen[SCREEN_ADDR(i, y)];
+  for(; i <= x2 / 2; i++)
+    *nPtr++ = c;
 }
 
-inline void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
+void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     if(x1 == x2){
       if(y1 > y2)
         drawFVLine(x1, y2, y1);
@@ -1268,7 +1467,7 @@ inline void drwLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2) {
     }
   }
 
-inline void setClip(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
+void setClip(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
   clipx0 = (x0 >= 0 && x0 < 127) ? x0 : 0;
   clipy0 = (y0 >= 0 && y0 < 127) ? y0 : 0;
   clipx1 = (x0 + x1 > 0 && x0 + x1 <= 127) ? x0 + x1 : 128;
@@ -1280,40 +1479,40 @@ inline void setClip(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
 }
 
 inline void setPix(uint16_t x, uint16_t y, uint8_t c){
-  uint8_t xi, b, n;
+  uint16_t xi, b, n;
   if(isClip){
     if(x < clipx1 && x >= clipx0 && y < clipy1 && y >= clipy0){
-      xi = x / 2;
+      xi = x >> 1;
       b = screen[SCREEN_ADDR(xi, y)];
       if(x & 1)
         n = (b & 0xf0) + c;
       else
         n = (b & 0x0f) + ( c << 4);
       if(b != n){
-        line_is_draw[y] |= 1 + x / 64;
+        SET_LINE_IS_DRAW(y);
         screen[SCREEN_ADDR(xi, y)] = n;
       }
     }
   }
   else{
     if(x < 128 && y < 128){
-      xi = x / 2;
+      xi = x >> 1;
       b = screen[SCREEN_ADDR(xi, y)];
       if(x & 1)
         n = (b & 0xf0) + c;
       else
         n = (b & 0x0f) + ( c << 4);
       if(b != n){
-        line_is_draw[y] |= 1 + x / 64;
+        SET_LINE_IS_DRAW(y);
         screen[SCREEN_ADDR(xi, y)] = n;
       }
     }
   }
 }
 
-inline uint8_t getPix(uint8_t x, uint8_t y){
-  uint8_t xi, b;
-  if(x >= 0 && x < 128 && y >= 0 && y < 128){
+uint8_t getPix(uint8_t x, uint8_t y){
+  uint16_t xi, b;
+  if(x < 128 && y < 128){
     xi = x / 2;
     if(x % 2)
       b = (screen[SCREEN_ADDR(xi, y)] & 0x0f);
@@ -1330,7 +1529,7 @@ void changePalette(uint8_t n, uint16_t c){
     for(uint8_t y = 0; y < 128; y++){
       for(uint8_t x = 0; x < 64; x++){
         if(((screen[SCREEN_ADDR(x, y)] & 0xf0) >> 4) == n || (screen[SCREEN_ADDR(x, y)] & 0x0f) == n)
-          line_is_draw[y] |= 1 + x / 32;
+          SET_LINE_IS_DRAW(y);
       }
     }
   }
@@ -1345,11 +1544,11 @@ void scrollScreen(uint8_t step, uint8_t direction){
         bufPixel = screen[SCREEN_ADDR(clipx0 / 2, y)];
         for(uint8_t x = clipx0 / 2 + 1; x < clipx1 / 2; x++){
           if(screen[SCREEN_ADDR(x - 1, y)] != screen[SCREEN_ADDR(x,y)])
-            line_is_draw[y] |= 1 + x / 32;
+            SET_LINE_IS_DRAW(y);
           screen[SCREEN_ADDR(x - 1,  y)] = screen[SCREEN_ADDR(x,y)];
         }
         if(screen[SCREEN_ADDR((clipx1 - 1) / 2, y)] != bufPixel)
-            line_is_draw[y] |= 1;
+            SET_LINE_IS_DRAW(y);
         screen[SCREEN_ADDR((clipx1 - 1) / 2, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
@@ -1363,11 +1562,11 @@ void scrollScreen(uint8_t step, uint8_t direction){
         bufPixel = screen[SCREEN_ADDR(x, clipy0)];
         for(uint8_t y = clipy0 + 1; y < clipy1; y++){
           if(screen[SCREEN_ADDR(x, y - 1)] != screen[SCREEN_ADDR(x,y)])
-            line_is_draw[y] |= 1 + x / 32;
+            SET_LINE_IS_DRAW(y);
           screen[SCREEN_ADDR(x, y - 1)] = screen[SCREEN_ADDR(x,y)];
         }
         if(screen[SCREEN_ADDR(x, clipy1 - 1)] != bufPixel)
-            line_is_draw[clipy1 - 1] |= 2;
+            SET_LINE_IS_DRAW(clipy1 - 1);
         screen[SCREEN_ADDR(x, clipy1 - 1)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
@@ -1381,11 +1580,11 @@ void scrollScreen(uint8_t step, uint8_t direction){
         bufPixel = screen[SCREEN_ADDR((clipx1 - 1) / 2, y)];
         for(uint8_t x = (clipx1 - 1) / 2; x > clipx0 / 2; x--){
           if(screen[SCREEN_ADDR(x,y)] != screen[SCREEN_ADDR(x - 1, y)])
-            line_is_draw[y] |= 1 + x / 32;
+            SET_LINE_IS_DRAW(y);
           screen[SCREEN_ADDR(x,y)] = screen[SCREEN_ADDR(x - 1, y)];
         }
         if(screen[SCREEN_ADDR(clipx0 / 2, y)] != bufPixel)
-            line_is_draw[y] |= 1;
+            SET_LINE_IS_DRAW(y);
         screen[SCREEN_ADDR(clipx0 / 2, y)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
@@ -1399,11 +1598,11 @@ void scrollScreen(uint8_t step, uint8_t direction){
         bufPixel = screen[SCREEN_ADDR(x, (clipx1 - 1) / 2)];
         for(uint8_t y = clipy1 - 1; y > clipy0; y--){
           if(screen[SCREEN_ADDR(x,y)] != screen[SCREEN_ADDR(x, y - 1)])
-            line_is_draw[y] |= 1 + x / 32;
+            SET_LINE_IS_DRAW(y);
           screen[SCREEN_ADDR(x,y)] = screen[SCREEN_ADDR(x, y - 1)];
         }
         if(screen[SCREEN_ADDR(x, clipy0)] != bufPixel)
-            line_is_draw[0] |= 1 + x / 32;
+            SET_LINE_IS_DRAW(0);
         screen[SCREEN_ADDR(x, clipy0)] = bufPixel;
       }
       for(uint8_t n = 0; n < 32; n++)
@@ -1615,14 +1814,14 @@ inline void setBgColor(uint8_t c){
   bgcolor = c & 0xf;
 }
 
-inline void drwRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
+void drwRect(int16_t x0, int16_t y0, int16_t x1, int16_t y1){
   drawFHLine(x0, x1, y0);
   drawFHLine(x0, x1, y1);
   drawFVLine(x0, y0, y1);
   drawFVLine(x1, y0, y1);
 }
 
-inline void fillRect(int8_t x, int8_t y, uint8_t w, uint8_t h, uint8_t c){
+void fillRect(int8_t x, int8_t y, uint8_t w, uint8_t h, uint8_t c){
    for(int16_t jx = x; jx < x + w; jx++)
      for(int16_t jy = y; jy < y + h; jy++)
       setPix(jx, jy, c);
@@ -1700,7 +1899,7 @@ void fllCirc(int16_t x0, int16_t y0, int16_t r) {
   }
 }
 
-inline void drwTriangle( uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3){
+void drwTriangle( uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3){
   drwLine( x1, y1, x2, y2);
   drwLine( x2, y2, x3, y3);
   drwLine( x3, y3, x1, y1);
@@ -1865,13 +2064,13 @@ void drawString(uint16_t s, uint16_t x, uint16_t y){
     }
   }
   
-inline void fontload(int16_t adr, int8_t start, int8_t end){
+void fontload(int16_t adr, int8_t start, int8_t end){
     castomfont.adress = adr;
     castomfont.start = start & 0xff;
     castomfont.end = end & 0xff;
   }
   
-inline void fontsize(int16_t imgwidth, int16_t imgheight, int16_t charwidth, int16_t charheight){
+void fontsize(int16_t imgwidth, int16_t imgheight, int16_t charwidth, int16_t charheight){
     castomfont.imgwidth = imgwidth;
     castomfont.imgheight = imgheight;
     castomfont.charwidth = charwidth & 0xff;

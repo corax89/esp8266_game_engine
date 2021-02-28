@@ -220,7 +220,7 @@ void coos_screen(void){
 }
 
 void ICACHE_RAM_ATTR timer_tick(void){
-  for(int8_t i = 0; i < 8; i++){
+  for(int16_t i = 0; i < 8; i++){
     if(timers[i] >= 1)
       timers[i] --;
   }
@@ -348,15 +348,33 @@ void setup() {
   tft.setTextColor(0xFFE0);
   tft.setCursor(2, 2);
   tft.print(F("LittleFS Initialize... Please wait"));
+ 
   //Initialize File System
+  LittleFSConfig cfg;
+  cfg.setAutoFormat(false);
+  LittleFS.setConfig(cfg);
+  tft.setTextColor(TFT_GREEN);
   if(LittleFS.begin()){
     Serial.println(F("LittleFS Initialize....ok"));
   }
   else{
-    Serial.println(F("LittleFS Initialization...failed"));
-    tft.fillScreen(0x0000);
-    tft.setCursor(2, 2);
-    tft.print(F("LittleFS Initialize... failed"));   
+    tft.print(F("LittleFS init FAILED"));
+    tft.setCursor(2, 10);
+    tft.print(F("LittleFS FORMATING..."));
+    Serial.println(F("LittleFS init FAILED. Formatting..."));
+    if(LittleFS.format()){
+      Serial.println(F("Formatting DONE"));
+      tft.setCursor(2, 18);
+      tft.print(F("Formatting DONE!"));
+      LittleFS.begin();
+      delay(2000);
+    }
+    else {
+      Serial.println(F("Formatting FAILED")); 
+      tft.setCursor(2, 18);
+      tft.print(F("Formatting FAILED"));
+      delay(2000);
+    }
   }
   // turn off ESP8266 RF
   WiFiOff();
