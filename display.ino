@@ -856,8 +856,8 @@ void setSpriteValue(uint16_t n, uint16_t t, int16_t v){
 }
 
 inline void drawRotateSprPixel(int8_t pixel, int16_t x0, int16_t y0, int16_t x, int16_t y, int16_t hw, int16_t hh, int16_t c, int16_t s){
-  int16_t nx = hw + (((x - hw) * c - (y - hh) * s) >> MULTIPLY_FP_RESOLUTION_BITS);
-  int16_t ny = hh + (((y - hh) * c + (x - hw) * s) >> MULTIPLY_FP_RESOLUTION_BITS);
+  int16_t nx = hw + (((x - hw) * c - (y - hh) * s) >> fixed_res_bit);
+  int16_t ny = hh + (((y - hh) * c + (x - hw) * s) >> fixed_res_bit);
   int16_t nnx = nx / 2;
   int16_t nnx0 = x0 / 2;
   if(nnx0 + nnx >= 0 && nnx0 + nnx < 64 && y0 + ny >= 0 && y0 + ny < 128){

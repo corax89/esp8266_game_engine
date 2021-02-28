@@ -1303,7 +1303,7 @@ void cpuRun(uint16_t n){
             // SPALET R,R   D6 RR
             reg1 = op2 >> 4;//номер палитры
             reg2 = op2 & 0xf;//цвет
-            changePalette(reg[reg1] & 15, reg[reg2]);
+            changePalette(reg[reg1], reg[reg2]);
             break;
           case 0xD7:
               reg1 = op2 & 0xf;
