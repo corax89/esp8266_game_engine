@@ -18,8 +18,8 @@
   #include "ESPboyLogo.h"
   #include "lib/ESPboy_keyboard.h"
   #include "lib/ESPboy_keyboard.cpp"
-  #include "lib/ESPboy_LED.h"
-  #include "lib/ESPboy_LED.cpp"
+  #include "lib/ESPboyLED.h"
+  #include "lib/ESPboyLED.cpp"
   
   keyboardModule keybModule(1,1,7000);
   Adafruit_MCP23017 mcp;
@@ -294,7 +294,7 @@ void setup() {
      mcp.pinMode(i, INPUT);
      mcp.pullUp(i, HIGH);
   }
-  myled.begin();
+  myled.begin(&mcp);
   myled.setRGB(0, 0, 0);
   delay(50);
   if (keybModule.begin())
@@ -344,10 +344,6 @@ void setup() {
   tft.setRotation(1);
  #endif
   tft.fillScreen(0x0000);
-  tft.setTextSize(1);
-  tft.setTextColor(0xFFE0);
-  tft.setCursor(2, 2);
-  tft.print(F("LittleFS Initialize... Please wait"));
  
   //Initialize File System
   LittleFSConfig cfg;

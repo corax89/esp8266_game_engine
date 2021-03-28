@@ -3,11 +3,13 @@ ESPboy LED class
 for www.ESPboy.com project by RomanS
 */
 
-#include "ESPboy_LED.h"
+#include "ESPboyLED.h"
 
 
-void ESPboyLED::begin(){
+void ESPboyLED::begin(Adafruit_MCP23017 *mcpGUI){
+  mcp = mcpGUI;
   pinMode(LEDPIN, OUTPUT);
+  mcp->pinMode(LEDLOCK, OUTPUT);
   LEDflagOnOff = 1;
   LEDr = 0; 
   LEDg = 0; 
@@ -79,33 +81,38 @@ uint8_t ESPboyLED::getB(){
 
 
 void ICACHE_RAM_ATTR ESPboyLED::ledset(uint8_t rled, uint8_t gled, uint8_t bled) {
- static uint_fast32_t i, t, c, startTime, pixel, mask;
+ static uint_fast32_t i, t, c, startTime, pixel, mask, t0h, t1h, ttot;
  static uint8_t cpuFreq;
  static const uint32_t pinMask = 1<<LEDPIN;
- static uint32_t t0h, t1h, ttot;
+
   
- cpuFreq = ESP.getCpuFreqMHz()/80;
- t0h  = 32*cpuFreq;  // 0.4us
- t1h  = 64*cpuFreq;  // 0.8us
- ttot = 100*cpuFreq; // 1.25us
+  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pinMask);
+  delay(1);
+
+  mcp->digitalWrite(LEDLOCK, HIGH); 
+  
+  cpuFreq = ESP.getCpuFreqMHz()/80;
+  t0h  = 32*cpuFreq;  // 0.4us
+  t1h  = 64*cpuFreq;  // 0.8us
+  ttot = 100*cpuFreq; // 1.25us
   
   pixel = (gled<<16) + (rled<<8) + bled;
   mask = 0x800000; 
   startTime = 0;
-  GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pinMask);
-  delay(1);
   os_intr_lock();
   for (i=0; i<24; i++){
     if (pixel & mask) t = t1h;
     else t = t0h;
-    while (((c=ESP.getCycleCount()) - startTime) < ttot);    // Wait for the previous bit to finish
+    while (((c=ESP.getCycleCount()) - startTime) < ttot);// Wait for the previous bit to finish
     GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, pinMask);      // digitalWrite HIGH 
     startTime = c;   
-    while (((c=ESP.getCycleCount()) - startTime) < t);       // Wait for high time to finish
+    while (((c=ESP.getCycleCount()) - startTime) < t);   // Wait for high time to finish
     GPIO_REG_WRITE(GPIO_OUT_W1TC_ADDRESS, pinMask);      // digitalWrite LOW
     mask>>=1;
   }
   os_intr_unlock();
   delay(1);
   GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, pinMask);
+
+  mcp->digitalWrite(LEDLOCK, LOW); 
 }
