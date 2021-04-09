@@ -1400,7 +1400,7 @@ void drawFHLine(int16_t x1, int16_t x2, uint16_t y){
   uint8_t *nPtr, c;
   uint16_t i;
   if(isClip){
-    if(y < clipy1 || y >= clipy0)
+    if(y < clipy0 || y >= clipy1)
       return;
     if(x1 < clipx0)
       x1 = clipx0;
@@ -1408,7 +1408,7 @@ void drawFHLine(int16_t x1, int16_t x2, uint16_t y){
       x2 = clipx1;
   }
   else{
-    if(y >= 128)
+    if(y > 127)
       return;
     if(x1 < 0)
       x1 = 0;
